@@ -14,7 +14,7 @@ export default function Header({ language, onLanguageToggle, onNavigate }: Heade
 
   const content = {
     ar: {
-      brand: "مستشارك العقاري",
+      brand: "العقاري",
       home: "الرئيسية",
       properties: "العقارات",
       insights: "رؤى السوق",
@@ -24,7 +24,7 @@ export default function Header({ language, onLanguageToggle, onNavigate }: Heade
       cta: "استشارة مجانية"
     },
     en: {
-      brand: "Real Estate Consultant",
+      brand: "ALAQARY",
       home: "Home",
       properties: "Properties",
       insights: "Market Insights",
@@ -45,13 +45,16 @@ export default function Header({ language, onLanguageToggle, onNavigate }: Heade
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-6">
+    <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-gradient-to-b from-black/95 via-[#0d0d0d]/95 to-black/90 backdrop-blur supports-[backdrop-filter]:bg-black/80">
+      <div className="container flex h-20 items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <button 
             onClick={() => onNavigate("home")}
-            className={`text-xl font-serif font-bold text-primary ${language === 'ar' ? 'font-arabic' : ''}`}
+            className={`text-2xl font-bold tracking-wider bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
             data-testid="link-brand"
+            style={{
+              textShadow: '0 0 30px rgba(217, 165, 67, 0.3)'
+            }}
           >
             {content[language].brand}
           </button>
@@ -61,7 +64,7 @@ export default function Header({ language, onLanguageToggle, onNavigate }: Heade
               <button
                 key={item.key}
                 onClick={() => onNavigate(item.key)}
-                className={`text-sm font-medium hover:text-primary transition-colors ${language === 'ar' ? 'font-arabic' : ''}`}
+                className={`text-sm font-medium text-white/80 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
                 data-testid={`link-${item.key}`}
               >
                 {item.label}

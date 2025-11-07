@@ -8,8 +8,8 @@ interface FooterProps {
 export default function Footer({ language }: FooterProps) {
   const content = {
     ar: {
-      brand: "مستشارك العقاري",
-      tagline: "نبني قرارات ثروة مش عقارات",
+      brand: "العقاري",
+      tagline: "نحوّل المعرفة والقرارات إلى ثروة",
       quickLinks: "روابط سريعة",
       home: "الرئيسية",
       properties: "العقارات",
@@ -18,15 +18,15 @@ export default function Footer({ language }: FooterProps) {
       about: "من نحن",
       contact: "اتصل بنا",
       contactInfo: "معلومات الاتصال",
-      email: "info@realestate.com",
+      email: "info@alaqary.com",
       phone: "+20 123 456 7890",
       address: "القاهرة، مصر",
       followUs: "تابعنا",
-      copyright: "© 2025 جميع الحقوق محفوظة"
+      copyright: "© 2025 العقاري - جميع الحقوق محفوظة"
     },
     en: {
-      brand: "Real Estate Consultant",
-      tagline: "Building wealth decisions, not just properties",
+      brand: "ALAQARY",
+      tagline: "Turn data and decisions into wealth",
       quickLinks: "Quick Links",
       home: "Home",
       properties: "Properties",
@@ -35,11 +35,11 @@ export default function Footer({ language }: FooterProps) {
       about: "About",
       contact: "Contact",
       contactInfo: "Contact Info",
-      email: "info@realestate.com",
+      email: "info@alaqary.com",
       phone: "+20 123 456 7890",
       address: "Cairo, Egypt",
       followUs: "Follow Us",
-      copyright: "© 2025 All rights reserved"
+      copyright: "© 2025 ALAQARY - All rights reserved"
     }
   };
 
@@ -59,27 +59,27 @@ export default function Footer({ language }: FooterProps) {
   ];
 
   return (
-    <footer className="bg-card border-t mt-20">
+    <footer className="bg-gradient-to-b from-[#0d0d0d] to-black border-t border-primary/10 mt-20">
       <div className="container px-6 py-12">
         <div className="grid md:grid-cols-4 gap-8">
           <div>
-            <div className={`text-xl font-serif font-bold text-primary mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <div className={`text-2xl font-bold mb-3 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}>
               {content[language].brand}
             </div>
-            <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <p className={`text-sm text-white/60 leading-relaxed ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].tagline}
             </p>
           </div>
 
           <div>
-            <h3 className={`font-semibold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <h3 className={`font-semibold mb-4 text-white ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].quickLinks}
             </h3>
             <ul className="space-y-2">
               {links.map((link) => (
                 <li key={link.key}>
                   <button
-                    className={`text-sm text-muted-foreground hover:text-primary transition-colors ${language === 'ar' ? 'font-arabic' : ''}`}
+                    className={`text-sm text-white/60 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
                     data-testid={`link-footer-${link.key}`}
                   >
                     {link.label}
@@ -90,27 +90,27 @@ export default function Footer({ language }: FooterProps) {
           </div>
 
           <div>
-            <h3 className={`font-semibold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <h3 className={`font-semibold mb-4 text-white ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].contactInfo}
             </h3>
             <ul className="space-y-3">
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4" />
+              <li className="flex items-center gap-2 text-sm text-white/60">
+                <Mail className="h-4 w-4 text-primary" />
                 <span data-testid="text-email">{content[language].email}</span>
               </li>
-              <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4" />
+              <li className="flex items-center gap-2 text-sm text-white/60">
+                <Phone className="h-4 w-4 text-primary" />
                 <span data-testid="text-phone">{content[language].phone}</span>
               </li>
-              <li className={`flex items-center gap-2 text-sm text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
-                <MapPin className="h-4 w-4" />
+              <li className={`flex items-center gap-2 text-sm text-white/60 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                <MapPin className="h-4 w-4 text-primary" />
                 <span data-testid="text-address">{content[language].address}</span>
               </li>
             </ul>
           </div>
 
           <div>
-            <h3 className={`font-semibold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <h3 className={`font-semibold mb-4 text-white ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].followUs}
             </h3>
             <div className="flex gap-4">
@@ -120,7 +120,7 @@ export default function Footer({ language }: FooterProps) {
                   <a
                     key={index}
                     href={social.url}
-                    className="hover-elevate active-elevate-2 p-2 rounded-md border bg-background"
+                    className="hover-elevate active-elevate-2 p-2 rounded-md border border-primary/20 bg-black/40 text-primary transition-all duration-300"
                     target="_blank"
                     rel="noopener noreferrer"
                     data-testid={`link-social-${index}`}
@@ -133,8 +133,8 @@ export default function Footer({ language }: FooterProps) {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t text-center">
-          <p className={`text-sm text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
+        <div className="mt-12 pt-8 border-t border-primary/10 text-center">
+          <p className={`text-sm text-white/40 ${language === 'ar' ? 'font-arabic' : ''}`}>
             {content[language].copyright}
           </p>
         </div>

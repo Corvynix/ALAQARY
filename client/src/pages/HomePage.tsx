@@ -103,7 +103,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-card">
+    <div className="min-h-screen bg-gradient-to-b from-black via-[#0d0d0d] to-black">
       <Header 
         language={language} 
         onLanguageToggle={() => setLanguage(language === "ar" ? "en" : "ar")}
@@ -123,10 +123,10 @@ export default function HomePage() {
 
         <TrustSection language={language} />
 
-        <section className="py-16 px-6" data-testid="section-properties">
+        <section className="py-16 px-6 bg-gradient-to-b from-black via-[#0d0d0d] to-black" data-testid="section-properties">
           <div className="max-w-7xl mx-auto">
             <h2 
-              className={`text-4xl font-serif font-bold text-center mb-12 ${language === 'ar' ? 'font-arabic' : ''}`}
+              className={`text-4xl font-bold text-center mb-12 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
             >
               {language === "ar" ? "عقارات مميزة" : "Featured Properties"}
             </h2>

@@ -33,10 +33,10 @@ export default function MarketSnapshot({ language, data }: MarketSnapshotProps) 
   };
 
   return (
-    <section className="py-16 px-6" data-testid="section-market-snapshot">
+    <section className="py-16 px-6 bg-gradient-to-b from-black via-[#0d0d0d] to-black" data-testid="section-market-snapshot">
       <div className="max-w-7xl mx-auto">
         <h2 
-          className={`text-4xl font-serif font-bold text-center mb-12 ${language === 'ar' ? 'font-arabic' : ''}`}
+          className={`text-4xl font-bold text-center mb-12 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
           data-testid="text-market-title"
         >
           {content[language].title}
@@ -46,11 +46,11 @@ export default function MarketSnapshot({ language, data }: MarketSnapshotProps) 
           {data.map((item, index) => (
             <Card 
               key={index} 
-              className="hover-elevate active-elevate-2 transition-all"
+              className="hover-elevate active-elevate-2 transition-all bg-gradient-to-br from-black/80 to-[#0d0d0d]/80 border-primary/20"
               data-testid={`card-market-${index}`}
             >
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-                <CardTitle className={`text-lg font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
+                <CardTitle className={`text-lg font-semibold text-primary ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {item.city}
                 </CardTitle>
                 <Home className="h-5 w-5 text-primary" />
@@ -58,8 +58,8 @@ export default function MarketSnapshot({ language, data }: MarketSnapshotProps) 
               <CardContent>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-muted-foreground">{content[language].avgPrice}</p>
-                    <p className="text-2xl font-bold" data-testid={`text-price-${index}`}>{item.avgPrice}</p>
+                    <p className="text-sm text-white/50">{content[language].avgPrice}</p>
+                    <p className="text-2xl font-bold text-white" data-testid={`text-price-${index}`}>{item.avgPrice}</p>
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -77,7 +77,7 @@ export default function MarketSnapshot({ language, data }: MarketSnapshotProps) 
                       </span>
                     </div>
                     
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-sm text-white/60">
                       {demandLabels[language][item.demandLevel]}
                     </span>
                   </div>

@@ -65,14 +65,14 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
   };
 
   return (
-    <section className="py-20 px-6" data-testid="section-contact">
+    <section className="py-20 px-6 bg-gradient-to-b from-[#0d0d0d] to-black" data-testid="section-contact">
       <div className="max-w-2xl mx-auto">
-        <Card>
+        <Card className="bg-gradient-to-br from-black/90 to-[#0d0d0d]/90 border-primary/20">
           <CardHeader className="text-center">
-            <CardTitle className={`text-3xl font-serif ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <CardTitle className={`text-3xl font-bold bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}>
               {content[language].title}
             </CardTitle>
-            <CardDescription className={`text-lg ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <CardDescription className={`text-lg text-white/70 ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].subtitle}
             </CardDescription>
           </CardHeader>
