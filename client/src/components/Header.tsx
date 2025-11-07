@@ -19,7 +19,7 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       properties: "العقارات",
       insights: "رؤى السوق",
       blog: "المدونة",
-      roiCalculator: "حاسبة ROI",
+      roiCalculator: "حاسبة الاستثمار",
       about: "من نحن",
       contact: "اتصل بنا",
       cta: "استشارة مجانية"
