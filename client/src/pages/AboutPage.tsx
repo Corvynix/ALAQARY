@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
 export default function AboutPage() {
-  const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const { language, toggleLanguage } = useLanguage();
 
   const content = {
     ar: {
@@ -26,7 +26,7 @@ export default function AboutPage() {
     <div className="min-h-screen bg-gradient-to-b from-black via-[#0d0d0d] to-black">
       <Header 
         language={language} 
-        onLanguageToggle={() => setLanguage(language === "ar" ? "en" : "ar")}
+        onLanguageToggle={toggleLanguage}
       />
 
       <main className="py-16 px-6">

@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { useLanguage } from "@/contexts/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
@@ -8,7 +8,7 @@ import PropertyFilters from "@/components/PropertyFilters";
 import type { Property } from "@shared/schema";
 
 export default function PropertiesPage() {
-  const [language, setLanguage] = useState<"ar" | "en">("ar");
+  const { language, toggleLanguage } = useLanguage();
 
   const { data: properties = [], isLoading } = useQuery<Property[]>({
     queryKey: ["/api/properties"]
@@ -30,7 +30,7 @@ export default function PropertiesPage() {
     <div className="min-h-screen bg-gradient-to-b from-black via-[#0d0d0d] to-black">
       <Header 
         language={language} 
-        onLanguageToggle={() => setLanguage(language === "ar" ? "en" : "ar")}
+        onLanguageToggle={toggleLanguage}
       />
 
       <main className="py-16 px-6">
