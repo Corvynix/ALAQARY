@@ -2,6 +2,10 @@ import { createClient } from '@supabase/supabase-js';
 import * as schema from "@shared/schema";
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Validate Supabase environment variables
 if (!process.env.SUPABASE_URL) {
