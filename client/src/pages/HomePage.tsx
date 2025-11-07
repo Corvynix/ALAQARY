@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import HeroSection from "@/components/HeroSection";
 import MarketSnapshot from "@/components/MarketSnapshot";
 import TrustSection from "@/components/TrustSection";
@@ -15,6 +17,7 @@ import type { Property, MarketTrend } from "@shared/schema";
 export default function HomePage() {
   const [language, setLanguage] = useState<"ar" | "en">("ar");
   const [currentPage, setCurrentPage] = useState("home");
+  const { toast } = useToast();
 
   // Fetch properties from backend
   const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
@@ -24,6 +27,32 @@ export default function HomePage() {
   // Fetch market trends from backend
   const { data: marketTrendsData = [], isLoading: trendsLoading } = useQuery<MarketTrend[]>({
     queryKey: ["/api/market-trends"]
+  });
+
+  // Lead submission mutation
+  const submitLeadMutation = useMutation({
+    mutationFn: async (leadData: any) => {
+      const response = await apiRequest("POST", "/api/leads", leadData);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: language === "ar" ? "تم الإرسال بنجاح!" : "Successfully Submitted!",
+        description: language === "ar" 
+          ? "سنتواصل معك قريباً. شكراً لثقتك." 
+          : "We will contact you soon. Thank you for your trust.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: language === "ar" ? "خطأ" : "Error",
+        description: language === "ar" 
+          ? "حدث خطأ أثناء إرسال طلبك. حاول مرة أخرى." 
+          : "An error occurred while submitting your request. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error submitting lead:", error);
+    },
   });
 
   // Transform market trends data for MarketSnapshot component
@@ -129,7 +158,7 @@ export default function HomePage() {
         <ContactForm 
           language={language}
           onSubmit={(data) => {
-            console.log('Contact form submitted:', data);
+            submitLeadMutation.mutate(data);
           }}
         />
       </main>
