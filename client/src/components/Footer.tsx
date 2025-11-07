@@ -1,5 +1,6 @@
 import { Mail, Phone, MapPin } from "lucide-react";
 import { SiLinkedin, SiFacebook, SiInstagram } from "react-icons/si";
+import { Link } from "wouter";
 
 interface FooterProps {
   language: "ar" | "en";
@@ -44,12 +45,12 @@ export default function Footer({ language }: FooterProps) {
   };
 
   const links = [
-    { key: "home", label: content[language].home },
-    { key: "properties", label: content[language].properties },
-    { key: "insights", label: content[language].insights },
-    { key: "blog", label: content[language].blog },
-    { key: "about", label: content[language].about },
-    { key: "contact", label: content[language].contact }
+    { key: "home", label: content[language].home, path: "/" },
+    { key: "properties", label: content[language].properties, path: "/properties" },
+    { key: "insights", label: content[language].insights, path: "/insights" },
+    { key: "blog", label: content[language].blog, path: "/blog" },
+    { key: "about", label: content[language].about, path: "/about" },
+    { key: "contact", label: content[language].contact, path: "/contact" }
   ];
 
   const socialLinks = [
@@ -78,12 +79,14 @@ export default function Footer({ language }: FooterProps) {
             <ul className="space-y-2">
               {links.map((link) => (
                 <li key={link.key}>
-                  <button
-                    className={`text-sm text-white/60 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
-                    data-testid={`link-footer-${link.key}`}
-                  >
-                    {link.label}
-                  </button>
+                  <Link href={link.path}>
+                    <a
+                      className={`text-sm text-white/60 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
+                      data-testid={`link-footer-${link.key}`}
+                    >
+                      {link.label}
+                    </a>
+                  </Link>
                 </li>
               ))}
             </ul>

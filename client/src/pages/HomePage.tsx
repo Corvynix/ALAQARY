@@ -16,7 +16,6 @@ import type { Property, MarketTrend } from "@shared/schema";
 
 export default function HomePage() {
   const [language, setLanguage] = useState<"ar" | "en">("ar");
-  const [currentPage, setCurrentPage] = useState("home");
   const { toast } = useToast();
 
   // Fetch properties from backend
@@ -107,10 +106,6 @@ export default function HomePage() {
       <Header 
         language={language} 
         onLanguageToggle={() => setLanguage(language === "ar" ? "en" : "ar")}
-        onNavigate={(page) => {
-          setCurrentPage(page);
-          console.log('Navigate to:', page);
-        }}
       />
 
       <main>

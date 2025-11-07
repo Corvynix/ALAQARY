@@ -1,15 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { Link } from "wouter";
 import LanguageToggle from "./LanguageToggle";
 
 interface HeaderProps {
   language: "ar" | "en";
   onLanguageToggle: () => void;
-  onNavigate: (page: string) => void;
 }
 
-export default function Header({ language, onLanguageToggle, onNavigate }: HeaderProps) {
+export default function Header({ language, onLanguageToggle }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const content = {
@@ -36,39 +36,40 @@ export default function Header({ language, onLanguageToggle, onNavigate }: Heade
   };
 
   const menuItems = [
-    { key: "home", label: content[language].home },
-    { key: "properties", label: content[language].properties },
-    { key: "insights", label: content[language].insights },
-    { key: "blog", label: content[language].blog },
-    { key: "about", label: content[language].about },
-    { key: "contact", label: content[language].contact }
+    { key: "home", label: content[language].home, path: "/" },
+    { key: "properties", label: content[language].properties, path: "/properties" },
+    { key: "insights", label: content[language].insights, path: "/insights" },
+    { key: "blog", label: content[language].blog, path: "/blog" },
+    { key: "about", label: content[language].about, path: "/about" },
+    { key: "contact", label: content[language].contact, path: "/contact" }
   ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-primary/10 bg-gradient-to-b from-black/95 via-[#0d0d0d]/95 to-black/90 backdrop-blur supports-[backdrop-filter]:bg-black/80">
       <div className="container flex h-20 items-center justify-between px-6">
         <div className="flex items-center gap-8">
-          <button 
-            onClick={() => onNavigate("home")}
-            className={`text-2xl font-bold tracking-wider bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
-            data-testid="link-brand"
-            style={{
-              textShadow: '0 0 30px rgba(217, 165, 67, 0.3)'
-            }}
-          >
-            {content[language].brand}
-          </button>
+          <Link href="/">
+            <a 
+              className={`text-2xl font-bold tracking-wider bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
+              data-testid="link-brand"
+              style={{
+                textShadow: '0 0 30px rgba(217, 165, 67, 0.3)'
+              }}
+            >
+              {content[language].brand}
+            </a>
+          </Link>
 
           <nav className="hidden md:flex items-center gap-6">
             {menuItems.map((item) => (
-              <button
-                key={item.key}
-                onClick={() => onNavigate(item.key)}
-                className={`text-sm font-medium text-white/80 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
-                data-testid={`link-${item.key}`}
-              >
-                {item.label}
-              </button>
+              <Link key={item.key} href={item.path}>
+                <a
+                  className={`text-sm font-medium text-white/80 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
+                  data-testid={`link-${item.key}`}
+                >
+                  {item.label}
+                </a>
+              </Link>
             ))}
           </nav>
         </div>
@@ -76,13 +77,14 @@ export default function Header({ language, onLanguageToggle, onNavigate }: Heade
         <div className="flex items-center gap-4">
           <LanguageToggle language={language} onToggle={onLanguageToggle} />
           
-          <Button 
-            className="hidden md:inline-flex"
-            onClick={() => onNavigate("contact")}
-            data-testid="button-cta-header"
-          >
-            {content[language].cta}
-          </Button>
+          <Link href="/contact">
+            <Button 
+              className="hidden md:inline-flex"
+              data-testid="button-cta-header"
+            >
+              {content[language].cta}
+            </Button>
+          </Link>
 
           <Button
             variant="ghost"
@@ -97,30 +99,30 @@ export default function Header({ language, onLanguageToggle, onNavigate }: Heade
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden border-t bg-background p-4">
+        <div className="md:hidden border-t border-primary/10 bg-black/95 p-4">
           <nav className="flex flex-col gap-3">
             {menuItems.map((item) => (
-              <button
+              <Link
                 key={item.key}
-                onClick={() => {
-                  onNavigate(item.key);
-                  setMobileMenuOpen(false);
-                }}
-                className={`text-sm font-medium hover:text-primary transition-colors text-left ${language === 'ar' ? 'font-arabic text-right' : ''}`}
-                data-testid={`link-mobile-${item.key}`}
+                href={item.path}
+                onClick={() => setMobileMenuOpen(false)}
               >
-                {item.label}
-              </button>
+                <a
+                  className={`text-sm font-medium hover:text-primary transition-colors text-left ${language === 'ar' ? 'font-arabic text-right' : ''}`}
+                  data-testid={`link-mobile-${item.key}`}
+                >
+                  {item.label}
+                </a>
+              </Link>
             ))}
-            <Button 
-              className="w-full mt-2"
-              onClick={() => {
-                onNavigate("contact");
-                setMobileMenuOpen(false);
-              }}
-            >
-              {content[language].cta}
-            </Button>
+            <Link href="/contact">
+              <Button 
+                className="w-full mt-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {content[language].cta}
+              </Button>
+            </Link>
           </nav>
         </div>
       )}
