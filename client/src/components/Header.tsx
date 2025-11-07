@@ -49,26 +49,26 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       <div className="container flex h-20 items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <Link href="/">
-            <a 
-              className={`text-2xl font-bold tracking-wider bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
+            <span 
+              className={`text-2xl font-bold tracking-wider bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text cursor-pointer ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
               data-testid="link-brand"
               style={{
                 textShadow: '0 0 30px rgba(217, 165, 67, 0.3)'
               }}
             >
               {content[language].brand}
-            </a>
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
             {menuItems.map((item) => (
               <Link key={item.key} href={item.path}>
-                <a
-                  className={`text-sm font-medium text-white/80 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
+                <span
+                  className={`text-sm font-medium text-white/80 hover:text-primary transition-all duration-300 cursor-pointer ${language === 'ar' ? 'font-arabic' : ''}`}
                   data-testid={`link-${item.key}`}
                 >
                   {item.label}
-                </a>
+                </span>
               </Link>
             ))}
           </nav>
@@ -77,14 +77,13 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
         <div className="flex items-center gap-4">
           <LanguageToggle language={language} onToggle={onLanguageToggle} />
           
-          <Link href="/contact">
-            <Button 
-              className="hidden md:inline-flex"
-              data-testid="button-cta-header"
-            >
-              {content[language].cta}
-            </Button>
-          </Link>
+          <Button 
+            className="hidden md:inline-flex"
+            data-testid="button-cta-header"
+            onClick={() => window.location.href = '/contact'}
+          >
+            {content[language].cta}
+          </Button>
 
           <Button
             variant="ghost"
@@ -107,22 +106,23 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
                 href={item.path}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                <a
-                  className={`text-sm font-medium hover:text-primary transition-colors text-left ${language === 'ar' ? 'font-arabic text-right' : ''}`}
+                <span
+                  className={`text-sm font-medium hover:text-primary transition-colors text-left cursor-pointer ${language === 'ar' ? 'font-arabic text-right' : ''}`}
                   data-testid={`link-mobile-${item.key}`}
                 >
                   {item.label}
-                </a>
+                </span>
               </Link>
             ))}
-            <Link href="/contact">
-              <Button 
-                className="w-full mt-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {content[language].cta}
-              </Button>
-            </Link>
+            <Button 
+              className="w-full mt-2"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                window.location.href = '/contact';
+              }}
+            >
+              {content[language].cta}
+            </Button>
           </nav>
         </div>
       )}

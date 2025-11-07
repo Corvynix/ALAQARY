@@ -80,12 +80,12 @@ export default function Footer({ language }: FooterProps) {
               {links.map((link) => (
                 <li key={link.key}>
                   <Link href={link.path}>
-                    <a
-                      className={`text-sm text-white/60 hover:text-primary transition-all duration-300 ${language === 'ar' ? 'font-arabic' : ''}`}
+                    <span
+                      className={`text-sm text-white/60 hover:text-primary transition-all duration-300 cursor-pointer ${language === 'ar' ? 'font-arabic' : ''}`}
                       data-testid={`link-footer-${link.key}`}
                     >
                       {link.label}
-                    </a>
+                    </span>
                   </Link>
                 </li>
               ))}
