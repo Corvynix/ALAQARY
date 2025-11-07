@@ -13,11 +13,21 @@ export default function InsightsPage() {
   });
 
   const marketData = marketTrendsData.map(trend => ({
+    id: trend.id,
     city: trend.city,
     avgPrice: `${(Number(trend.avgPrice) / 1000000).toFixed(1)}M EGP`,
     changePercent: Number(trend.changePercent),
-    demandLevel: trend.demandLevel as "high" | "medium" | "low"
+    demandLevel: trend.demandLevel as "high" | "medium" | "low",
+    views: Number(trend.views || 0)
   }));
+
+  const handleTrendClick = async (trendId: string) => {
+    try {
+      await fetch(`/api/views/market-trend/${trendId}`, { method: "POST" });
+    } catch (error) {
+      console.error("Error tracking market trend view:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-[#0d0d0d] to-black">
@@ -45,7 +55,7 @@ export default function InsightsPage() {
               {language === "ar" ? "جاري التحميل..." : "Loading..."}
             </div>
           ) : (
-            <MarketSnapshot language={language} data={marketData} />
+            <MarketSnapshot language={language} data={marketData} onTrendClick={handleTrendClick} />
           )}
         </div>
       </main>

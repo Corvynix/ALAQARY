@@ -12,6 +12,14 @@ export default function BlogPage() {
     queryKey: ["/api/content"]
   });
 
+  const handlePostClick = async (postId: string) => {
+    try {
+      await fetch(`/api/views/content/${postId}`, { method: "POST" });
+    } catch (error) {
+      console.error("Error tracking content view:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-[#0d0d0d] to-black">
       <Header 
@@ -51,6 +59,7 @@ export default function BlogPage() {
                 <Card 
                   key={post.id} 
                   className="bg-black/40 border-primary/20 hover:border-primary/40 transition-all duration-300 hover-elevate cursor-pointer"
+                  onClick={() => handlePostClick(post.id)}
                 >
                   <CardHeader>
                     <CardTitle className={`text-xl bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : ''}`}>
@@ -62,10 +71,15 @@ export default function BlogPage() {
                       {language === "ar" ? post.body : post.bodyEn || post.body}
                     </p>
                     {post.category && (
-                      <div className="mt-4">
+                      <div className="mt-4 flex items-center justify-between">
                         <span className="inline-block px-3 py-1 text-xs bg-primary/10 text-primary rounded-full border border-primary/20">
                           {post.category}
                         </span>
+                        {post.views && Number(post.views) > 0 && (
+                          <span className="text-xs text-white/40">
+                            {Number(post.views).toLocaleString()} {language === "ar" ? "مشاهدة" : "views"}
+                          </span>
+                        )}
                       </div>
                     )}
                   </CardContent>

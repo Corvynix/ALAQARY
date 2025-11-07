@@ -13,10 +13,11 @@ import {
   properties,
   marketTrends,
   leads,
-  content
+  content,
+  roiCalculatorUsage
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -52,6 +53,15 @@ export interface IStorage {
   createContent(contentItem: InsertContent): Promise<Content>;
   updateContent(id: string, contentItem: Partial<InsertContent>): Promise<Content | undefined>;
   deleteContent(id: string): Promise<boolean>;
+
+  // View tracking methods
+  incrementPropertyViews(id: string): Promise<void>;
+  incrementContentViews(id: string): Promise<void>;
+  incrementMarketTrendViews(id: string): Promise<void>;
+  
+  // ROI Calculator usage tracking
+  getRoiCalculatorUsage(): Promise<number>;
+  incrementRoiCalculatorUsage(): Promise<number>;
 }
 
 export class DbStorage implements IStorage {
@@ -173,6 +183,49 @@ export class DbStorage implements IStorage {
   async deleteContent(id: string): Promise<boolean> {
     const result = await db.delete(content).where(eq(content.id, id)).returning();
     return result.length > 0;
+  }
+
+  async incrementPropertyViews(id: string): Promise<void> {
+    await db.update(properties)
+      .set({ views: sql`${properties.views} + 1` })
+      .where(eq(properties.id, id));
+  }
+
+  async incrementContentViews(id: string): Promise<void> {
+    await db.update(content)
+      .set({ views: sql`${content.views} + 1` })
+      .where(eq(content.id, id));
+  }
+
+  async incrementMarketTrendViews(id: string): Promise<void> {
+    await db.update(marketTrends)
+      .set({ views: sql`${marketTrends.views} + 1` })
+      .where(eq(marketTrends.id, id));
+  }
+
+  async getRoiCalculatorUsage(): Promise<number> {
+    const result = await db.select().from(roiCalculatorUsage).limit(1);
+    if (result.length === 0) {
+      const newRecord = await db.insert(roiCalculatorUsage).values({ totalUsage: "0" }).returning();
+      return parseInt(newRecord[0].totalUsage);
+    }
+    return parseInt(result[0].totalUsage);
+  }
+
+  async incrementRoiCalculatorUsage(): Promise<number> {
+    const result = await db.select().from(roiCalculatorUsage).limit(1);
+    if (result.length === 0) {
+      const newRecord = await db.insert(roiCalculatorUsage).values({ totalUsage: "1" }).returning();
+      return parseInt(newRecord[0].totalUsage);
+    }
+    const updated = await db.update(roiCalculatorUsage)
+      .set({ 
+        totalUsage: sql`${roiCalculatorUsage.totalUsage} + 1`,
+        lastUsed: new Date()
+      })
+      .where(eq(roiCalculatorUsage.id, result[0].id))
+      .returning();
+    return parseInt(updated[0].totalUsage);
   }
 }
 

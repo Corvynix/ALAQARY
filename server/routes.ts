@@ -271,6 +271,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // View Tracking Routes
+  app.post("/api/views/property/:id", async (req, res) => {
+    try {
+      await storage.incrementPropertyViews(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error incrementing property views:", error);
+      res.status(500).json({ error: "Failed to increment views" });
+    }
+  });
+
+  app.post("/api/views/content/:id", async (req, res) => {
+    try {
+      await storage.incrementContentViews(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error incrementing content views:", error);
+      res.status(500).json({ error: "Failed to increment views" });
+    }
+  });
+
+  app.post("/api/views/market-trend/:id", async (req, res) => {
+    try {
+      await storage.incrementMarketTrendViews(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error incrementing market trend views:", error);
+      res.status(500).json({ error: "Failed to increment views" });
+    }
+  });
+
+  // ROI Calculator Routes
+  app.get("/api/roi-calculator/usage", async (req, res) => {
+    try {
+      const usage = await storage.getRoiCalculatorUsage();
+      res.json({ totalUsage: usage });
+    } catch (error) {
+      console.error("Error fetching ROI calculator usage:", error);
+      res.status(500).json({ error: "Failed to fetch usage" });
+    }
+  });
+
+  app.post("/api/roi-calculator/usage", async (req, res) => {
+    try {
+      const usage = await storage.incrementRoiCalculatorUsage();
+      res.json({ totalUsage: usage });
+    } catch (error) {
+      console.error("Error incrementing ROI calculator usage:", error);
+      res.status(500).json({ error: "Failed to increment usage" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

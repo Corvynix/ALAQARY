@@ -10,6 +10,7 @@ import InsightsPage from "@/pages/InsightsPage";
 import BlogPage from "@/pages/BlogPage";
 import AboutPage from "@/pages/AboutPage";
 import ContactPage from "@/pages/ContactPage";
+import RoiCalculatorPage from "@/pages/RoiCalculatorPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/blog" component={BlogPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
+      <Route path="/roi-calculator" component={RoiCalculatorPage} />
       <Route component={NotFound} />
     </Switch>
   );

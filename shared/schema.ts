@@ -30,6 +30,7 @@ export const properties = pgTable("properties", {
   descriptionEn: text("description_en"),
   images: text("images").array().notNull().default(sql`ARRAY[]::text[]`),
   status: text("status").notNull().default("available"),
+  views: numeric("views").notNull().default("0"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -49,6 +50,7 @@ export const marketTrends = pgTable("market_trends", {
   changePercent: numeric("change_percent"),
   notes: text("notes"),
   notesEn: text("notes_en"),
+  views: numeric("views").notNull().default("0"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -87,6 +89,7 @@ export const content = pgTable("content", {
   body: text("body"),
   bodyEn: text("body_en"),
   category: text("category"),
+  views: numeric("views").notNull().default("0"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -97,3 +100,9 @@ export const insertContentSchema = createInsertSchema(content).omit({
 
 export type InsertContent = z.infer<typeof insertContentSchema>;
 export type Content = typeof content.$inferSelect;
+
+export const roiCalculatorUsage = pgTable("roi_calculator_usage", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  totalUsage: numeric("total_usage").notNull().default("0"),
+  lastUsed: timestamp("last_used").defaultNow().notNull(),
+});

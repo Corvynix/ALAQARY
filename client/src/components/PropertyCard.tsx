@@ -30,6 +30,15 @@ export default function PropertyCard({
   language,
   onLearnMore
 }: PropertyCardProps) {
+  const handleClick = async () => {
+    try {
+      await fetch(`/api/views/property/${id}`, { method: "POST" });
+    } catch (error) {
+      console.error("Error tracking property view:", error);
+    }
+    onLearnMore(id);
+  };
+
   const content = {
     ar: {
       learnMore: "اعرف القصة",
@@ -116,7 +125,7 @@ export default function PropertyCard({
         <Button 
           variant="outline" 
           className="w-full group"
-          onClick={() => onLearnMore(id)}
+          onClick={handleClick}
           data-testid={`button-learn-more-${id}`}
         >
           {content[language].learnMore}

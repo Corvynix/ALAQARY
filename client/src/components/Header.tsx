@@ -19,6 +19,7 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       properties: "العقارات",
       insights: "رؤى السوق",
       blog: "المدونة",
+      roiCalculator: "حاسبة ROI",
       about: "من نحن",
       contact: "اتصل بنا",
       cta: "استشارة مجانية"
@@ -29,6 +30,7 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       properties: "Properties",
       insights: "Market Insights",
       blog: "Blog",
+      roiCalculator: "ROI Calculator",
       about: "About",
       contact: "Contact",
       cta: "Free Consultation"
@@ -40,6 +42,7 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
     { key: "properties", label: content[language].properties, path: "/properties" },
     { key: "insights", label: content[language].insights, path: "/insights" },
     { key: "blog", label: content[language].blog, path: "/blog" },
+    { key: "roiCalculator", label: content[language].roiCalculator, path: "/roi-calculator" },
     { key: "about", label: content[language].about, path: "/about" },
     { key: "contact", label: content[language].contact, path: "/contact" }
   ];

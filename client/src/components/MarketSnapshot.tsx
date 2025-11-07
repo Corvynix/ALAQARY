@@ -2,28 +2,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Home } from "lucide-react";
 
 interface MarketData {
+  id: string;
   city: string;
   avgPrice: string;
   changePercent: number;
   demandLevel: "high" | "medium" | "low";
+  views: number;
 }
 
 interface MarketSnapshotProps {
   language: "ar" | "en";
   data: MarketData[];
+  onTrendClick?: (id: string) => void;
 }
 
-export default function MarketSnapshot({ language, data }: MarketSnapshotProps) {
+export default function MarketSnapshot({ language, data, onTrendClick }: MarketSnapshotProps) {
   const content = {
     ar: {
       title: "نظرة سريعة على السوق",
       avgPrice: "متوسط السعر",
-      demand: "الطلب"
+      demand: "الطلب",
+      views: "مشاهدة"
     },
     en: {
       title: "Market Snapshot",
       avgPrice: "Avg Price",
-      demand: "Demand"
+      demand: "Demand",
+      views: "views"
     }
   };
 
@@ -45,9 +50,10 @@ export default function MarketSnapshot({ language, data }: MarketSnapshotProps) 
         <div className="grid md:grid-cols-3 gap-6">
           {data.map((item, index) => (
             <Card 
-              key={index} 
-              className="hover-elevate active-elevate-2 transition-all bg-gradient-to-br from-black/80 to-[#0d0d0d]/80 border-primary/20"
+              key={item.id} 
+              className="hover-elevate active-elevate-2 transition-all bg-gradient-to-br from-black/80 to-[#0d0d0d]/80 border-primary/20 cursor-pointer"
               data-testid={`card-market-${index}`}
+              onClick={() => onTrendClick?.(item.id)}
             >
               <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
                 <CardTitle className={`text-lg font-semibold text-primary ${language === 'ar' ? 'font-arabic' : ''}`}>
@@ -81,6 +87,13 @@ export default function MarketSnapshot({ language, data }: MarketSnapshotProps) 
                       {demandLabels[language][item.demandLevel]}
                     </span>
                   </div>
+                  {item.views > 0 && (
+                    <div className="pt-2 border-t border-white/10">
+                      <span className="text-xs text-white/40">
+                        {item.views.toLocaleString()} {content[language].views}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
