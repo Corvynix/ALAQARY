@@ -54,9 +54,9 @@ export default function Footer({ language }: FooterProps) {
   ];
 
   const socialLinks = [
-    { icon: SiLinkedin, url: "#", label: "LinkedIn" },
-    { icon: SiFacebook, url: "#", label: "Facebook" },
-    { icon: SiInstagram, url: "#", label: "Instagram" }
+    { icon: SiLinkedin, url: "#", label: "LinkedIn", color: "#0A66C2" },
+    { icon: SiFacebook, url: "#", label: "Facebook", color: "#1877F2" },
+    { icon: SiInstagram, url: "#", label: "Instagram", color: "instagram" }
   ];
 
   return (
@@ -119,16 +119,30 @@ export default function Footer({ language }: FooterProps) {
             <div className="flex gap-4">
               {socialLinks.map((social, index) => {
                 const Icon = social.icon;
+                const isInstagram = social.color === "instagram";
                 return (
                   <a
                     key={index}
                     href={social.url}
-                    className="hover-elevate active-elevate-2 p-2 rounded-md border border-primary/20 bg-black/40 text-primary transition-all duration-300"
+                    className={`hover-elevate active-elevate-2 p-2 rounded-md border transition-all duration-300 ${
+                      isInstagram 
+                        ? 'border-pink-500/20 bg-gradient-to-br from-purple-600/10 via-pink-500/10 to-orange-500/10 hover:border-pink-500/40' 
+                        : 'border-white/10 bg-black/40 hover:border-white/30'
+                    }`}
                     target="_blank"
                     rel="noopener noreferrer"
                     data-testid={`link-social-${index}`}
+                    style={!isInstagram ? { color: social.color } : undefined}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon 
+                      className="h-5 w-5" 
+                      style={isInstagram ? {
+                        background: 'linear-gradient(45deg, #E4405F, #F77737, #FCAF45)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      } : undefined}
+                    />
                   </a>
                 );
               })}
