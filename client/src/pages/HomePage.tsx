@@ -1,6 +1,3 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import HeroSection from "@/components/HeroSection";
 import MarketSnapshot from "@/components/MarketSnapshot";
@@ -12,47 +9,14 @@ import ContactForm from "@/components/ContactForm";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import type { Property, MarketTrend } from "@shared/schema";
+import { mockProperties, mockMarketTrends } from "@/data/mockData";
 
 export default function HomePage() {
   const { language, toggleLanguage } = useLanguage();
-  const { toast } = useToast();
 
-  // Fetch properties from backend
-  const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
-    queryKey: ["/api/properties"]
-  });
-
-  // Fetch market trends from backend
-  const { data: marketTrendsData = [], isLoading: trendsLoading } = useQuery<MarketTrend[]>({
-    queryKey: ["/api/market-trends"]
-  });
-
-  // Lead submission mutation
-  const submitLeadMutation = useMutation({
-    mutationFn: async (leadData: any) => {
-      const response = await apiRequest("POST", "/api/leads", leadData);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: language === "ar" ? "تم الإرسال بنجاح!" : "Successfully Submitted!",
-        description: language === "ar" 
-          ? "سنتواصل معك قريباً. شكراً لثقتك." 
-          : "We will contact you soon. Thank you for your trust.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: language === "ar" ? "خطأ" : "Error",
-        description: language === "ar" 
-          ? "حدث خطأ أثناء إرسال طلبك. حاول مرة أخرى." 
-          : "An error occurred while submitting your request. Please try again.",
-        variant: "destructive",
-      });
-      console.error("Error submitting lead:", error);
-    },
-  });
+  // Use mock data instead of API calls
+  const properties = mockProperties;
+  const marketTrendsData = mockMarketTrends;
 
   // Transform market trends data for MarketSnapshot component
   const marketData = marketTrendsData.map(trend => ({
@@ -131,20 +95,16 @@ export default function HomePage() {
               onFilterChange={(filters) => console.log('Filters:', filters)}
             />
 
-            {propertiesLoading ? (
-              <div className="text-center py-12 text-muted-foreground">Loading properties...</div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {transformedProperties.map((property) => (
-                  <PropertyCard
-                    key={property.id}
-                    {...property}
-                    language={language}
-                    onLearnMore={(id) => console.log('Learn more:', id)}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {transformedProperties.map((property) => (
+                <PropertyCard
+                  key={property.id}
+                  {...property}
+                  language={language}
+                  onLearnMore={(id) => console.log('Learn more:', id)}
+                />
+              ))}
+            </div>
           </div>
         </section>
 
@@ -153,7 +113,8 @@ export default function HomePage() {
         <ContactForm 
           language={language}
           onSubmit={(data) => {
-            submitLeadMutation.mutate(data);
+            // Form submission handled in ContactForm component (WhatsApp/Email)
+            console.log('Form submitted:', data);
           }}
         />
       </main>
@@ -161,7 +122,7 @@ export default function HomePage() {
       <Footer language={language} />
 
       <WhatsAppButton 
-        phoneNumber="201234567890"
+        phoneNumber="20103053555"
         language={language}
       />
     </div>

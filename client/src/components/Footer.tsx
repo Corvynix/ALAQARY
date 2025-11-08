@@ -9,7 +9,7 @@ interface FooterProps {
 export default function Footer({ language }: FooterProps) {
   const content = {
     ar: {
-      brand: "العقاري",
+      brand: "العقري",
       tagline: "نحوّل المعرفة والقرارات إلى ثروة",
       quickLinks: "روابط سريعة",
       home: "الرئيسية",

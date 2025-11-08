@@ -1,23 +1,16 @@
-import { useQuery } from "@tanstack/react-query";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Content } from "@shared/schema";
+import { mockContent } from "@/data/mockData";
 
 export default function BlogPage() {
   const { language, toggleLanguage } = useLanguage();
 
-  const { data: blogPosts = [], isLoading } = useQuery<Content[]>({
-    queryKey: ["/api/content"]
-  });
+  const blogPosts = mockContent;
 
-  const handlePostClick = async (postId: string) => {
-    try {
-      await fetch(`/api/views/content/${postId}`, { method: "POST" });
-    } catch (error) {
-      console.error("Error tracking content view:", error);
-    }
+  const handlePostClick = (postId: string) => {
+    console.log('Post clicked:', postId);
   };
 
   return (
@@ -41,13 +34,7 @@ export default function BlogPage() {
               : "Articles and tips to transform your real estate decisions into wealth"}
           </p>
 
-          {isLoading ? (
-            <div className="text-center py-20">
-              <p className={`text-white/60 text-lg ${language === 'ar' ? 'font-arabic' : ''}`}>
-                {language === "ar" ? "جاري التحميل..." : "Loading..."}
-              </p>
-            </div>
-          ) : blogPosts.length === 0 ? (
+          {blogPosts.length === 0 ? (
             <div className="text-center py-20">
               <p className={`text-white/60 text-lg ${language === 'ar' ? 'font-arabic' : ''}`}>
                 {language === "ar" ? "لا توجد مقالات حالياً" : "No articles available"}
@@ -75,11 +62,6 @@ export default function BlogPage() {
                         <span className="inline-block px-3 py-1 text-xs bg-primary/10 text-primary rounded-full border border-primary/20">
                           {post.category}
                         </span>
-                        {post.views && Number(post.views) > 0 && (
-                          <span className="text-xs text-white/40">
-                            {Number(post.views).toLocaleString()} {language === "ar" ? "مشاهدة" : "views"}
-                          </span>
-                        )}
                       </div>
                     )}
                   </CardContent>

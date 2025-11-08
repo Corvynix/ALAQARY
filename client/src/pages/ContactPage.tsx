@@ -1,6 +1,3 @@
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -9,32 +6,6 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 
 export default function ContactPage() {
   const { language, toggleLanguage } = useLanguage();
-  const { toast } = useToast();
-
-  const submitLeadMutation = useMutation({
-    mutationFn: async (leadData: any) => {
-      const response = await apiRequest("POST", "/api/leads", leadData);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: language === "ar" ? "تم الإرسال بنجاح!" : "Successfully Submitted!",
-        description: language === "ar" 
-          ? "سنتواصل معك قريباً. شكراً لثقتك." 
-          : "We will contact you soon. Thank you for your trust.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: language === "ar" ? "خطأ" : "Error",
-        description: language === "ar" 
-          ? "حدث خطأ أثناء إرسال طلبك. حاول مرة أخرى." 
-          : "An error occurred while submitting your request. Please try again.",
-        variant: "destructive",
-      });
-      console.error("Error submitting lead:", error);
-    },
-  });
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-[#0d0d0d] to-black">
@@ -46,11 +17,14 @@ export default function ContactPage() {
       <main className="py-16">
         <ContactForm 
           language={language} 
-          onSubmit={(data) => submitLeadMutation.mutate(data)}
+          onSubmit={(data) => {
+            // Form submission handled in ContactForm component (WhatsApp/Email)
+            console.log('Form submitted:', data);
+          }}
         />
       </main>
 
-      <WhatsAppButton phoneNumber="201234567890" language={language} />
+      <WhatsAppButton phoneNumber="20103053555" language={language} />
       <Footer language={language} />
     </div>
   );

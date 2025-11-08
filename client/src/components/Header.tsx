@@ -14,7 +14,7 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
 
   const content = {
     ar: {
-      brand: "العقاري",
+      brand: "العقري",
       home: "الرئيسية",
       properties: "العقارات",
       insights: "رؤى السوق",

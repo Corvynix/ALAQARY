@@ -157,5 +157,6 @@ create table content (
 * Phase 3: Add lead scoring + personalized dashboards
 * Phase 4: Expand to regional markets
 
-End. 
-
+End.
+ 
+

@@ -30,12 +30,7 @@ export default function PropertyCard({
   language,
   onLearnMore
 }: PropertyCardProps) {
-  const handleClick = async () => {
-    try {
-      await fetch(`/api/views/property/${id}`, { method: "POST" });
-    } catch (error) {
-      console.error("Error tracking property view:", error);
-    }
+  const handleClick = () => {
     onLearnMore(id);
   };
 

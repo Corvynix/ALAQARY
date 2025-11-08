@@ -1,18 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PropertyCard from "@/components/PropertyCard";
 import PropertyFilters from "@/components/PropertyFilters";
-import type { Property } from "@shared/schema";
+import { mockProperties } from "@/data/mockData";
 
 export default function PropertiesPage() {
   const { language, toggleLanguage } = useLanguage();
 
-  const { data: properties = [], isLoading } = useQuery<Property[]>({
-    queryKey: ["/api/properties"]
-  });
+  const properties = mockProperties;
 
   const transformedProperties = properties.map(property => ({
     id: property.id,
@@ -52,30 +48,24 @@ export default function PropertiesPage() {
             onFilterChange={(filters) => console.log('Filters:', filters)}
           />
 
-          {isLoading ? (
-            <div className="text-center text-primary py-12">
-              {language === "ar" ? "جاري التحميل..." : "Loading..."}
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-              {transformedProperties.map((property) => (
-                <PropertyCard 
-                  key={property.id}
-                  id={property.id}
-                  title={property.title}
-                  city={property.city}
-                  propertyType={property.propertyType}
-                  price={property.price}
-                  sizeSqm={property.sizeSqm}
-                  description={property.description}
-                  image={property.image}
-                  status={property.status as "available" | "sold" | "reserved"}
-                  language={language}
-                  onLearnMore={(id) => console.log('View property:', id)}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
+            {transformedProperties.map((property) => (
+              <PropertyCard 
+                key={property.id}
+                id={property.id}
+                title={property.title}
+                city={property.city}
+                propertyType={property.propertyType}
+                price={property.price}
+                sizeSqm={property.sizeSqm}
+                description={property.description}
+                image={property.image}
+                status={property.status as "available" | "sold" | "reserved"}
+                language={language}
+                onLearnMore={(id) => console.log('View property:', id)}
+              />
+            ))}
+          </div>
         </div>
       </main>
 

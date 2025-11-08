@@ -60,8 +60,37 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Format the message for WhatsApp/Email
+    const message = `New Contact Form Submission:\n\n` +
+      `${content[language].name}: ${formData.name}\n` +
+      `${content[language].phone}: ${formData.phone}\n` +
+      `${content[language].email}: ${formData.email || 'N/A'}\n` +
+      `${content[language].purpose}: ${formData.purpose || 'N/A'}\n` +
+      `${content[language].city}: ${formData.city || 'N/A'}\n` +
+      `${content[language].budget}: ${formData.budget || 'N/A'}\n` +
+      `${content[language].message}: ${formData.message || 'N/A'}`;
+    
+    // Encode message for WhatsApp URL
+    const whatsappMessage = encodeURIComponent(message);
+    const whatsappNumber = "20103053555";
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+    
+    // Create mailto link
+    const emailSubject = encodeURIComponent("New Contact Form Submission");
+    const emailBody = encodeURIComponent(message);
+    const emailUrl = `mailto:el.aaqary@outlook.com?subject=${emailSubject}&body=${emailBody}`;
+    
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
+    
+    // Also open email client (user can choose to send)
+    setTimeout(() => {
+      window.location.href = emailUrl;
+    }, 500);
+    
+    // Call onSubmit callback for any additional handling
     onSubmit(formData);
-    console.log('Form submitted:', formData);
   };
 
   return (

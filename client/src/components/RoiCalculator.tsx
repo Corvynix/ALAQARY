@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,13 +17,6 @@ export default function RoiCalculator({ language }: RoiCalculatorProps) {
   const [loanInterest, setLoanInterest] = useState<string>("");
   const [results, setResults] = useState<any>(null);
   const [totalUsage, setTotalUsage] = useState<number>(0);
-
-  useEffect(() => {
-    fetch("/api/roi-calculator/usage")
-      .then(res => res.json())
-      .then(data => setTotalUsage(data.totalUsage))
-      .catch(console.error);
-  }, []);
 
   const content = {
     ar: {
@@ -105,13 +98,8 @@ export default function RoiCalculator({ language }: RoiCalculatorProps) {
       annualLoanPayment
     });
 
-    try {
-      const response = await fetch("/api/roi-calculator/usage", { method: "POST" });
-      const data = await response.json();
-      setTotalUsage(data.totalUsage);
-    } catch (error) {
-      console.error("Error tracking usage:", error);
-    }
+    // Increment local usage counter
+    setTotalUsage(prev => prev + 1);
   };
 
   const resetForm = () => {
