@@ -42,63 +42,113 @@ export default function HeroSection({ language, onCTAClick }: HeroSectionProps) 
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-60" />
 
       <style>{`
-        @keyframes shimmer {
-          0%, 100% { 
-            background-position: -200% center;
-            opacity: 0.6;
+        @keyframes gradientFlow {
+          0% { 
+            background-position: 0% 50%;
           }
           50% { 
-            background-position: 200% center;
+            background-position: 100% 50%;
+          }
+          100% { 
+            background-position: 0% 50%;
+          }
+        }
+        
+        @keyframes shimmerWave {
+          0% { 
+            transform: translateX(-100%) translateY(0);
+            opacity: 0;
+          }
+          50% {
+            opacity: 0.8;
+          }
+          100% { 
+            transform: translateX(100%) translateY(0);
+            opacity: 0;
+          }
+        }
+        
+        @keyframes pulseGlow {
+          0%, 100% {
+            text-shadow: 
+              0 0 20px rgba(217, 165, 67, 0.3),
+              0 0 40px rgba(217, 165, 67, 0.2),
+              0 0 60px rgba(217, 165, 67, 0.1);
+          }
+          50% {
+            text-shadow: 
+              0 0 30px rgba(217, 165, 67, 0.5),
+              0 0 60px rgba(217, 165, 67, 0.3),
+              0 0 90px rgba(217, 165, 67, 0.2);
+          }
+        }
+        
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
             opacity: 1;
+            transform: translateY(0);
           }
         }
         
         .gold-shimmer {
           background: linear-gradient(
-            90deg,
-            transparent 0%,
-            transparent 40%,
-            rgba(217, 165, 67, 0.4) 50%,
-            transparent 60%,
-            transparent 100%
+            120deg,
+            #d9a543 0%,
+            #f4e4b5 25%,
+            #d9a543 50%,
+            #f4e4b5 75%,
+            #d9a543 100%
           );
-          background-size: 200% 100%;
-          animation: shimmer 6s ease-in-out infinite;
-          -webkit-background-clip: text;
-          background-clip: text;
-        }
-        
-        .text-reflection {
-          position: relative;
-        }
-        
-        .text-reflection::after {
-          content: attr(data-text);
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 100%;
-          height: 30%;
-          background: linear-gradient(
-            to bottom,
-            rgba(217, 165, 67, 0.15) 0%,
-            transparent 100%
-          );
+          background-size: 300% 100%;
+          animation: gradientFlow 4s ease-in-out infinite;
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
-          opacity: 0.3;
-          transform: scaleY(-1);
-          filter: blur(2px);
+          animation: gradientFlow 4s ease-in-out infinite, pulseGlow 3s ease-in-out infinite;
+          position: relative;
+        }
+        
+        .gold-shimmer::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.6) 50%,
+            transparent 100%
+          );
+          animation: shimmerWave 3s ease-in-out infinite;
+        }
+        
+        .text-container {
+          animation: fadeInUp 1s ease-out;
         }
         
         @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          33% { transform: translateY(-15px) rotate(2deg); }
+          66% { transform: translateY(-8px) rotate(-2deg); }
+        }
+        
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
         
         .float-animation {
-          animation: float 6s ease-in-out infinite;
+          animation: float 8s ease-in-out infinite;
+        }
+        
+        .spin-slow {
+          animation: spin 30s linear infinite;
         }
       `}</style>
 

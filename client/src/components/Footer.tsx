@@ -9,7 +9,7 @@ interface FooterProps {
 export default function Footer({ language }: FooterProps) {
   const content = {
     ar: {
-      brand: "العقاري",
+      brand: "العقرى",
       tagline: "نحوّل المعرفة والقرارات إلى ثروة",
       quickLinks: "روابط سريعة",
       home: "الرئيسية",
@@ -23,10 +23,10 @@ export default function Footer({ language }: FooterProps) {
       phone: "+20 123 456 7890",
       address: "القاهرة، مصر",
       followUs: "تابعنا",
-      copyright: "© 2025 العقاري - جميع الحقوق محفوظة"
+      copyright: "© 2025 العقرى - جميع الحقوق محفوظة"
     },
     en: {
-      brand: "ALAQARY",
+      brand: "ALAQRA",
       tagline: "Turn data and decisions into wealth",
       quickLinks: "Quick Links",
       home: "Home",
@@ -40,7 +40,7 @@ export default function Footer({ language }: FooterProps) {
       phone: "+20 123 456 7890",
       address: "Cairo, Egypt",
       followUs: "Follow Us",
-      copyright: "© 2025 ALAQARY - All rights reserved"
+      copyright: "© 2025 ALAQRA - All rights reserved"
     }
   };
 
