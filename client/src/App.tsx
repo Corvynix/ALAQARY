@@ -25,6 +25,8 @@ import AgentDashboardPage from "@/pages/AgentDashboardPage";
 import DeveloperDashboardPage from "@/pages/DeveloperDashboardPage";
 import ClientDashboardPage from "@/pages/ClientDashboardPage";
 import ContributorDashboardPage from "@/pages/ContributorDashboardPage";
+import AIBrainPage from "@/pages/AIBrainPage";
+import EnhancedMarketIntelligencePage from "@/pages/EnhancedMarketIntelligencePage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -40,6 +42,8 @@ function Router() {
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/roi-calculator" component={RoiCalculatorPage} />
+      <Route path="/ai-brain" component={AIBrainPage} />
+      <Route path="/market-data" component={EnhancedMarketIntelligencePage} />
       
       <Route path="/market-intelligence">
         {() => (

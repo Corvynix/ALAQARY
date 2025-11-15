@@ -42,7 +42,7 @@ export async function analyzeContentEffectiveness(): Promise<
 
   // Get content titles
   const results = [];
-  for (const [contentId, stats] of contentStats.entries()) {
+  for (const [contentId, stats] of Array.from(contentStats.entries())) {
     const content = await storage.getContentById(contentId);
     if (!content) continue;
     
@@ -91,7 +91,7 @@ export async function analyzePropertyConversion(): Promise<
 
   // Get property titles
   const results = [];
-  for (const [propertyId, stats] of propertyStats.entries()) {
+  for (const [propertyId, stats] of Array.from(propertyStats.entries())) {
     const property = await storage.getPropertyById(propertyId);
     if (!property) continue;
     

@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Layers, MapPin, Users, Building2, Brain, TrendingUp } from "lucide-react";
+import { Layers, MapPin, Users, Building2, Brain, TrendingUp, Coins } from "lucide-react";
 import MarketIntelligence from "@/components/MarketIntelligence";
 import BehaviorInsights from "@/components/BehaviorInsights";
 import FunnelAnalytics from "@/components/FunnelAnalytics";
+import AdminCreditManagement from "@/components/AdminCreditManagement";
 import { useOverviewStats, useAgentRankings } from "@/hooks/useIntelligence";
 
 export default function SuperIntelligenceDashboard() {
@@ -186,9 +187,9 @@ export default function SuperIntelligenceDashboard() {
             </Card>
           </div>
 
-          {/* 5-Layer Tabs */}
+          {/* 5-Layer Tabs + Credits */}
           <Tabs defaultValue="market" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="market" className={language === 'ar' ? 'font-arabic' : ''}>
                 <Layers className="h-4 w-4 mr-2" />
                 {content[language].marketLayer}
@@ -208,6 +209,10 @@ export default function SuperIntelligenceDashboard() {
               <TabsTrigger value="behavior" className={language === 'ar' ? 'font-arabic' : ''}>
                 <Brain className="h-4 w-4 mr-2" />
                 {content[language].behaviorLayer}
+              </TabsTrigger>
+              <TabsTrigger value="credits" className={language === 'ar' ? 'font-arabic' : ''}>
+                <Coins className="h-4 w-4 mr-2" />
+                {language === 'ar' ? 'إدارة النقاط' : 'Credits'}
               </TabsTrigger>
             </TabsList>
 
@@ -308,6 +313,10 @@ export default function SuperIntelligenceDashboard() {
 
             <TabsContent value="behavior" className="mt-6">
               <BehaviorInsights language={language} />
+            </TabsContent>
+
+            <TabsContent value="credits" className="mt-6">
+              <AdminCreditManagement />
             </TabsContent>
           </Tabs>
         </div>

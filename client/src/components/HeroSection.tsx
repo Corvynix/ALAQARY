@@ -16,14 +16,16 @@ export default function HeroSection({ language, onCTAClick }: HeroSectionProps) 
   };
   const content = {
     ar: {
-      headline: "حوِّل المعرفة والقرارات إلى ثروة",
-      subtext: "نحو حياة تستحقها — استثمارك يبدأ من قرارك التالي",
-      cta: "ابدأ استشارتك المجانية"
+      headline: "منصة الذكاء العقاري",
+      subtitle: "مدعومة بالذكاء الاصطناعي والبيانات",
+      subtext: "نظام ذكاء عقاري متكامل — حيث تتحول البيانات إلى قرارات، والقرارات إلى ثروة",
+      cta: "ابدأ رحلتك الآن"
     },
     en: {
-      headline: "Turn data and decisions into wealth",
-      subtext: "Toward the life you deserve — your investment starts with your next decision",
-      cta: "Start Your Free Consultation"
+      headline: "Real Estate Intelligence Platform",
+      subtitle: "Powered by AI & Data",
+      subtext: "A complete real estate intelligence OS — where data becomes decisions, and decisions become wealth",
+      cta: "Begin Your Journey"
     }
   };
 
@@ -66,21 +68,32 @@ export default function HeroSection({ language, onCTAClick }: HeroSectionProps) 
       `}</style>
 
       <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
-        <div className="mb-8">
+        <div className="mb-4">
           <h1 
-            className={`text-6xl md:text-8xl font-bold mb-2 gold-glow-text ${
+            className={`text-6xl md:text-8xl font-bold mb-4 gold-glow-text ${
               language === 'ar' ? 'font-arabic' : 'font-serif'
             }`}
             data-testid="text-hero-headline"
           >
             {content[language].headline}
           </h1>
+          <h2 
+            className={`text-3xl md:text-4xl font-semibold text-primary/90 mb-2 ${
+              language === 'ar' ? 'font-arabic' : 'font-serif'
+            }`}
+            data-testid="text-hero-subtitle"
+            style={{
+              textShadow: '0 2px 20px rgba(217, 165, 67, 0.4)'
+            }}
+          >
+            {content[language].subtitle}
+          </h2>
         </div>
         
         <div className="h-1 w-32 mx-auto bg-gradient-to-r from-transparent via-primary to-transparent mb-8 opacity-60" />
         
         <p 
-          className={`text-2xl md:text-3xl text-white/95 mb-12 max-w-4xl mx-auto leading-relaxed ${
+          className={`text-xl md:text-2xl text-white/95 mb-12 max-w-4xl mx-auto leading-relaxed ${
             language === 'ar' ? 'font-arabic' : 'font-serif'
           }`}
           data-testid="text-hero-subtext"
@@ -106,25 +119,25 @@ export default function HeroSection({ language, onCTAClick }: HeroSectionProps) 
           </Button>
         </div>
 
-        <div className="mt-16 flex justify-center items-center gap-8 text-white/60 text-sm">
+        <div className="mt-16 flex justify-center items-center gap-8 text-white/60 text-sm flex-wrap">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className={language === 'ar' ? 'font-arabic' : ''}>
-              {language === 'ar' ? 'استشارة مجانية' : 'Free Consultation'}
+              {language === 'ar' ? 'ذكاء اصطناعي' : 'AI-Powered'}
             </span>
           </div>
           <div className="w-px h-4 bg-white/20" />
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '0.5s' }} />
             <span className={language === 'ar' ? 'font-arabic' : ''}>
-              {language === 'ar' ? 'خبراء معتمدون' : 'Certified Experts'}
+              {language === 'ar' ? 'بيانات حقيقية' : 'Real Data'}
             </span>
           </div>
           <div className="w-px h-4 bg-white/20" />
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" style={{ animationDelay: '1s' }} />
             <span className={language === 'ar' ? 'font-arabic' : ''}>
-              {language === 'ar' ? 'نتائج مضمونة' : 'Guaranteed Results'}
+              {language === 'ar' ? 'قرارات ذكية' : 'Smart Decisions'}
             </span>
           </div>
         </div>

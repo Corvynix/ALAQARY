@@ -107,7 +107,7 @@ export default function UserTypeSelector({
             className={`text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text no-underline decoration-none ${
               language === 'ar' ? 'font-arabic' : 'font-serif'
             }`}
-            style={{ textDecoration: 'none', WebkitTextDecoration: 'none' }}
+            style={{ textDecoration: 'none' }}
             data-testid="text-selector-title"
           >
             {content[language].title}

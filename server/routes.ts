@@ -19,8 +19,17 @@ import { recommendPropertiesForClient, recommendAgentForClient, qualifyClient } 
 import { getBestScriptForAgent, getAgentIntelligence } from "./services/agentIntelligenceService";
 import { requireAuth, requireRole, generateToken, type AuthRequest } from "./middleware/auth";
 import { intelligenceRouter } from "./intelligence/router";
+import * as creditService from "./services/creditService";
+import * as aiService from "./services/aiService";
+import { db } from "./db";
+import { users } from "@shared/schema";
+import { aiLimiter, authLimiter } from "./middleware/rateLimiter";
+import healthRouter from "./routes/health";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check routes (no rate limiting)
+  app.use('/', healthRouter);
+
   // Mount Intelligence API Router (admin-only analytics endpoints)
   app.use("/api/intelligence", intelligenceRouter);
 
@@ -73,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", authLimiter, async (req, res) => {
     try {
       const { username, password } = req.body;
 
@@ -143,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/favorites", requireAuth, async (req, res) => {
     try {
       const authReq = req as AuthRequest;
-      const favorites = [];
+      const favorites: any[] = [];
       res.json(favorites);
     } catch (error) {
       console.error("Error fetching favorites:", error);
@@ -1035,6 +1044,211 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching common objections:", error);
       res.status(500).json({ error: "Failed to fetch common objections" });
+    }
+  });
+
+  // =====================================================
+  // AI BRAIN API
+  // =====================================================
+  
+  // AI Brain endpoint - Generate AI-powered responses
+  app.post("/api/ai/brain", requireAuth, aiLimiter, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const { question, context } = req.body;
+
+      if (!question || typeof question !== "string" || question.trim().length === 0) {
+        return res.status(400).json({ error: "Question is required" });
+      }
+
+      // Optional: Check if user has enough credits (if AI queries cost credits)
+      // For now, we'll make it free but track usage
+      const user = authReq.user!;
+      
+      // Generate AI response
+      const aiResponse = await aiService.generateAIResponse({
+        question: question.trim(),
+        userRole: user.role,
+        userId: user.id,
+        context: context || {},
+      });
+
+      // Optional: Deduct credits for AI query (uncomment if needed)
+      // try {
+      //   await creditService.spendCredits(
+      //     user.id,
+      //     1, // 1 credit per query
+      //     "AI Brain query",
+      //     undefined,
+      //     "ai_query"
+      //   );
+      // } catch (creditError) {
+      //   // Log but don't fail the request if credit deduction fails
+      //   console.error("Error deducting credits for AI query:", creditError);
+      // }
+
+      res.json({
+        response: aiResponse.response,
+        confidence: aiResponse.confidence,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error: any) {
+      console.error("Error processing AI brain request:", error);
+      res.status(500).json({ 
+        error: "Failed to process AI request",
+        message: error.message 
+      });
+    }
+  });
+
+  // =====================================================
+  // CREDIT SYSTEM API
+  // =====================================================
+  
+  // Get current user's credit balance
+  app.get("/api/credits/balance", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const balance = await creditService.getCreditBalance(authReq.user!.id);
+      res.json({ balance });
+    } catch (error) {
+      console.error("Error fetching credit balance:", error);
+      res.status(500).json({ error: "Failed to fetch credit balance" });
+    }
+  });
+
+  // Get credit transaction history
+  app.get("/api/credits/history", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const history = await creditService.getCreditHistory(authReq.user!.id);
+      res.json({ transactions: history });
+    } catch (error) {
+      console.error("Error fetching credit history:", error);
+      res.status(500).json({ error: "Failed to fetch credit history" });
+    }
+  });
+
+  // Earn credits
+  app.post("/api/credits/earn", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const { amount, reason, relatedEntityId, relatedEntityType } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Invalid credit amount" });
+      }
+      if (!reason) {
+        return res.status(400).json({ error: "Reason is required" });
+      }
+
+      const result = await creditService.earnCredits(
+        authReq.user!.id,
+        amount,
+        reason,
+        relatedEntityId,
+        relatedEntityType
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error earning credits:", error);
+      res.status(500).json({ error: error.message || "Failed to earn credits" });
+    }
+  });
+
+  // Spend credits
+  app.post("/api/credits/spend", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const { amount, reason, relatedEntityId, relatedEntityType } = req.body;
+
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Invalid credit amount" });
+      }
+      if (!reason) {
+        return res.status(400).json({ error: "Reason is required" });
+      }
+
+      const result = await creditService.spendCredits(
+        authReq.user!.id,
+        amount,
+        reason,
+        relatedEntityId,
+        relatedEntityType
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error spending credits:", error);
+      if (error.message === "Insufficient credits") {
+        return res.status(400).json({ error: "Insufficient credits" });
+      }
+      res.status(500).json({ error: error.message || "Failed to spend credits" });
+    }
+  });
+
+  // =====================================================
+  // ADMIN CREDIT MANAGEMENT API
+  // =====================================================
+
+  // Get all users with credit balances (Admin only)
+  app.get("/api/admin/users", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      // Get all users from database
+      const allUsers = await db.select().from(users);
+      const usersWithCredits = await Promise.all(
+        allUsers.map(async (user) => {
+          const balance = await creditService.getCreditBalance(user.id);
+          return {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            credits: balance,
+          };
+        })
+      );
+      res.json({ users: usersWithCredits });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Admin: Manually add credits to a user
+  app.post("/api/admin/credits/add", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const { userId, amount, reason } = req.body;
+
+      if (!userId) {
+        return res.status(400).json({ error: "User ID is required" });
+      }
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Invalid credit amount" });
+      }
+
+      const result = await creditService.adminAddCredits(
+        userId,
+        amount,
+        reason || "Admin manual credit addition"
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error adding credits:", error);
+      res.status(500).json({ error: error.message || "Failed to add credits" });
+    }
+  });
+
+  // Get all credit transactions (Admin only)
+  app.get("/api/admin/credits/transactions", requireAuth, requireRole('admin'), async (req, res) => {
+    try {
+      const transactions = await storage.getAllCreditTransactions();
+      res.json({ transactions });
+    } catch (error) {
+      console.error("Error fetching credit transactions:", error);
+      res.status(500).json({ error: "Failed to fetch credit transactions" });
     }
   });
 

@@ -15,6 +15,8 @@ import {
   type InsertUserBehavior,
   type Transaction,
   type InsertTransaction,
+  type CreditTransaction,
+  type InsertCreditTransaction,
   users,
   properties,
   marketTrends,
@@ -23,7 +25,8 @@ import {
   roiCalculatorUsage,
   agents,
   userBehaviors,
-  transactions
+  transactions,
+  creditTransactions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and } from "drizzle-orm";
@@ -106,6 +109,13 @@ export interface IStorage {
   listLeads(): Promise<Lead[]>;
   listAgents(): Promise<Agent[]>;
   listUserBehaviors(): Promise<UserBehavior[]>;
+
+  // Credit transaction methods
+  getCreditTransactions(userId: string): Promise<CreditTransaction[]>;
+  createCreditTransaction(transaction: InsertCreditTransaction): Promise<CreditTransaction>;
+  getUserCredits(userId: string): Promise<number>;
+  updateUserCredits(userId: string, amount: number): Promise<User | undefined>;
+  getAllCreditTransactions(): Promise<CreditTransaction[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -387,6 +397,46 @@ export class DbStorage implements IStorage {
 
   async listUserBehaviors(): Promise<UserBehavior[]> {
     return this.getAllUserBehaviors();
+  }
+
+  // Credit transaction methods
+  async getCreditTransactions(userId: string): Promise<CreditTransaction[]> {
+    return await db.select().from(creditTransactions)
+      .where(eq(creditTransactions.userId, userId))
+      .orderBy(desc(creditTransactions.createdAt));
+  }
+
+  async createCreditTransaction(transaction: InsertCreditTransaction): Promise<CreditTransaction> {
+    const result = await db.insert(creditTransactions).values(transaction).returning();
+    return result[0];
+  }
+
+  async getUserCredits(userId: string): Promise<number> {
+    const user = await this.getUser(userId);
+    if (!user || !user.credits) {
+      return 0;
+    }
+    return parseFloat(user.credits);
+  }
+
+  async updateUserCredits(userId: string, amount: number): Promise<User | undefined> {
+    const user = await this.getUser(userId);
+    if (!user) {
+      return undefined;
+    }
+    const currentCredits = parseFloat(user.credits || "0");
+    const newCredits = Math.max(0, currentCredits + amount); // Prevent negative credits
+    
+    const result = await db.update(users)
+      .set({ credits: newCredits.toString() })
+      .where(eq(users.id, userId))
+      .returning();
+    return result[0];
+  }
+
+  async getAllCreditTransactions(): Promise<CreditTransaction[]> {
+    return await db.select().from(creditTransactions)
+      .orderBy(desc(creditTransactions.createdAt));
   }
 }
 

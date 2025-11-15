@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CreditWallet from "@/components/CreditWallet";
+import CreditScoreCard from "@/components/CreditScoreCard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -125,6 +127,18 @@ export default function ClientDashboardPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <CreditWallet 
+              credits={user?.credits ? Number(user.credits) : 0} 
+              language={language}
+            />
+            <CreditScoreCard
+              score={user?.accuracyScore ? Number(user.accuracyScore) : 75}
+              role={user?.role || 'client'}
+              language={language}
+            />
           </div>
 
           <Tabs defaultValue="match" className="space-y-4">

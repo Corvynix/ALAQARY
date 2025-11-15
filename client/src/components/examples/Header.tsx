@@ -8,7 +8,6 @@ export default function HeaderExample() {
     <Header 
       language={language} 
       onLanguageToggle={() => setLanguage(language === "ar" ? "en" : "ar")}
-      onNavigate={(page) => console.log('Navigate to:', page)}
     />
   );
 }
