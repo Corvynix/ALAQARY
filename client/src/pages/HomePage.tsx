@@ -7,14 +7,12 @@ import { useFunnelTracking } from "@/hooks/useFunnelTracking";
 import HeroSection from "@/components/HeroSection";
 import UserTypeSelector, { type UserType } from "@/components/UserTypeSelector";
 import DynamicContentSection from "@/components/DynamicContentSection";
-import MarketSnapshot from "@/components/MarketSnapshot";
 import TrustSection from "@/components/TrustSection";
 import TestimonialCarousel from "@/components/TestimonialCarousel";
 import ContactForm from "@/components/ContactForm";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import type { MarketTrend } from "@shared/schema";
 
 export default function HomePage() {
   const { language, toggleLanguage } = useLanguage();
@@ -38,11 +36,6 @@ export default function HomePage() {
       });
     }
   };
-
-  // Fetch market trends from backend
-  const { data: marketTrendsData = [], isLoading: trendsLoading } = useQuery<MarketTrend[]>({
-    queryKey: ["/api/market-trends"]
-  });
 
   // Lead submission mutation
   const submitLeadMutation = useMutation({
@@ -79,16 +72,6 @@ export default function HomePage() {
       console.error("Error submitting lead:", error);
     },
   });
-
-  // Transform market trends data for MarketSnapshot component
-  const marketData = marketTrendsData.map(trend => ({
-    id: trend.id,
-    city: trend.city,
-    avgPrice: `${(Number(trend.avgPrice) / 1000000).toFixed(1)}M EGP`,
-    changePercent: Number(trend.changePercent),
-    demandLevel: trend.demandLevel as "high" | "medium" | "low",
-    views: 0 // Default value for views
-  }));
 
   const testimonialsData = {
     ar: [
@@ -224,8 +207,6 @@ export default function HomePage() {
           userType={selectedUserType}
           onCTAClick={scrollToContact}
         />
-
-        <MarketSnapshot language={language} data={marketData} />
 
         <TrustSection language={language} />
 
