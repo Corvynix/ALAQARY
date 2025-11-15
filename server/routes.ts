@@ -19,6 +19,11 @@ import { recommendPropertiesForClient, recommendAgentForClient, qualifyClient } 
 import { getBestScriptForAgent, getAgentIntelligence } from "./services/agentIntelligenceService";
 import { requireAuth, requireRole, generateToken, type AuthRequest } from "./middleware/auth";
 import { intelligenceRouter } from "./intelligence/router";
+import { 
+  calculateBuyerCreditScore, 
+  calculateProjectCreditScore, 
+  calculateAgentCreditScore 
+} from "./services/creditScoreService";
 import * as creditService from "./services/creditService";
 import * as aiService from "./services/aiService";
 import { db } from "./db";
@@ -144,8 +149,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       fullName: authReq.user.fullName,
       companyName: authReq.user.companyName,
       credits: authReq.user.credits,
-      accuracyScore: authReq.user.accuracyScore
+      accuracyScore: authReq.user.accuracyScore,
+      profileComplete: authReq.user.profileComplete,
+      preferences: authReq.user.preferences
     });
+  });
+
+  app.patch("/api/auth/me", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      if (!authReq.user) {
+        return res.status(401).json({ error: "غير مسجل الدخول" });
+      }
+
+      const updates: any = {};
+      if (req.body.role) updates.role = req.body.role;
+      if (req.body.preferences) updates.preferences = typeof req.body.preferences === 'string' 
+        ? req.body.preferences 
+        : JSON.stringify(req.body.preferences);
+      if (req.body.profileComplete !== undefined) updates.profileComplete = req.body.profileComplete;
+      if (req.body.fullName) updates.fullName = req.body.fullName;
+      if (req.body.companyName) updates.companyName = req.body.companyName;
+      if (req.body.email) updates.email = req.body.email;
+      if (req.body.phone) updates.phone = req.body.phone;
+
+      const updatedUser = await storage.updateUser(authReq.user.id, updates);
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({
+        id: updatedUser.id,
+        username: updatedUser.username,
+        role: updatedUser.role,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        fullName: updatedUser.fullName,
+        companyName: updatedUser.companyName,
+        credits: updatedUser.credits,
+        accuracyScore: updatedUser.accuracyScore,
+        profileComplete: updatedUser.profileComplete,
+        preferences: updatedUser.preferences
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ error: "Failed to update user" });
+    }
   });
   
   // User Favorites Routes
@@ -1046,6 +1095,160 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch common objections" });
     }
   });
+
+  // =====================================================
+  // CREDIT SCORE API
+  // =====================================================
+  
+  app.get("/api/credit-scores/:entityType/:entityId", requireAuth, async (req, res) => {
+    try {
+      const { entityType, entityId } = req.params;
+      const score = await storage.getCreditScore(entityId, entityType);
+      
+      if (!score) {
+        // Calculate if doesn't exist
+        let calculatedScore;
+        if (entityType === "buyer") {
+          calculatedScore = await calculateBuyerCreditScore(entityId);
+        } else if (entityType === "project") {
+          calculatedScore = await calculateProjectCreditScore(entityId);
+        } else if (entityType === "agent") {
+          calculatedScore = await calculateAgentCreditScore(entityId);
+        } else {
+          return res.status(400).json({ error: "Invalid entity type" });
+        }
+        
+        const savedScore = await storage.createOrUpdateCreditScore({
+          entityId: calculatedScore.entityId,
+          entityType: calculatedScore.entityType,
+          score: calculatedScore.score,
+          factors: calculatedScore.factors || "",
+        });
+        
+        return res.json(savedScore);
+      }
+      
+      res.json(score);
+    } catch (error: any) {
+      console.error("Error fetching credit score:", error);
+      res.status(500).json({ error: error.message || "Failed to fetch credit score" });
+    }
+  });
+
+  app.get("/api/credit-scores/:entityType", requireAuth, async (req, res) => {
+    try {
+      const { entityType } = req.params;
+      const scores = await storage.getCreditScoresByType(entityType);
+      res.json(scores);
+    } catch (error) {
+      console.error("Error fetching credit scores:", error);
+      res.status(500).json({ error: "Failed to fetch credit scores" });
+    }
+  });
+
+  app.post("/api/credit-scores/calculate/:entityType/:entityId", requireAuth, async (req, res) => {
+    try {
+      const { entityType, entityId } = req.params;
+      
+      let calculatedScore;
+      if (entityType === "buyer") {
+        calculatedScore = await calculateBuyerCreditScore(entityId);
+      } else if (entityType === "project") {
+        calculatedScore = await calculateProjectCreditScore(entityId);
+      } else if (entityType === "agent") {
+        calculatedScore = await calculateAgentCreditScore(entityId);
+      } else {
+        return res.status(400).json({ error: "Invalid entity type" });
+      }
+      
+      const savedScore = await storage.createOrUpdateCreditScore({
+        entityId: calculatedScore.entityId,
+        entityType: calculatedScore.entityType,
+        score: calculatedScore.score,
+        factors: calculatedScore.factors || "",
+      });
+      
+      res.json(savedScore);
+    } catch (error: any) {
+      console.error("Error calculating credit score:", error);
+      res.status(500).json({ error: error.message || "Failed to calculate credit score" });
+    }
+  });
+
+  // =====================================================
+  // DATA CONTRIBUTIONS API
+  // =====================================================
+  
+  app.post("/api/contributions", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const { dataType, region, data, isAnonymous } = req.body;
+      
+      if (!dataType || !data) {
+        return res.status(400).json({ error: "dataType and data are required" });
+      }
+      
+      // Calculate credits earned (basic calculation)
+      const creditsEarned = calculateContributionCredits(dataType, data);
+      
+      const contribution = await storage.createDataContribution({
+        contributorId: authReq.user!.id,
+        dataType,
+        region: region || null,
+        data: typeof data === 'string' ? data : JSON.stringify(data),
+        isAnonymous: isAnonymous ? "true" : "false",
+        creditsEarned: creditsEarned.toString(),
+      });
+      
+      // Award credits to user
+      if (creditsEarned > 0) {
+        await storage.updateUserCredits(authReq.user!.id, creditsEarned);
+        await storage.createCreditTransaction({
+          userId: authReq.user!.id,
+          amount: creditsEarned.toString(),
+          type: "earn",
+          reason: "data_contribution",
+          relatedEntityId: contribution.id,
+          relatedEntityType: "contribution",
+        });
+      }
+      
+      res.status(201).json(contribution);
+    } catch (error: any) {
+      console.error("Error creating contribution:", error);
+      res.status(500).json({ error: error.message || "Failed to create contribution" });
+    }
+  });
+
+  app.get("/api/contributions", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const contributions = await storage.getDataContributions(authReq.user!.id);
+      res.json(contributions);
+    } catch (error) {
+      console.error("Error fetching contributions:", error);
+      res.status(500).json({ error: "Failed to fetch contributions" });
+    }
+  });
+
+  // Helper function to calculate contribution credits
+  function calculateContributionCredits(dataType: string, data: any): number {
+    // Base credits by data type
+    const baseCredits: Record<string, number> = {
+      property_info: 10,
+      pricing: 15,
+      market_trends: 20,
+      sales_data: 25,
+    };
+    
+    const base = baseCredits[dataType] || 5;
+    
+    // Additional credits for data completeness
+    const dataSize = typeof data === 'string' ? data.length : JSON.stringify(data).length;
+    const sizeBonus = Math.floor(dataSize / 100); // 1 credit per 100 chars
+    
+    return base + sizeBonus;
+  }
 
   // =====================================================
   // AI BRAIN API

@@ -17,6 +17,10 @@ import {
   type InsertTransaction,
   type CreditTransaction,
   type InsertCreditTransaction,
+  type CreditScore,
+  type InsertCreditScore,
+  type DataContribution,
+  type InsertDataContribution,
   users,
   properties,
   marketTrends,
@@ -26,7 +30,9 @@ import {
   agents,
   userBehaviors,
   transactions,
-  creditTransactions
+  creditTransactions,
+  creditScores,
+  dataContributions
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, and } from "drizzle-orm";
@@ -36,6 +42,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, user: Partial<InsertUser & { preferences?: string; profileComplete?: string }>): Promise<User | undefined>;
 
   // Property methods
   getAllProperties(): Promise<Property[]>;
@@ -116,6 +123,16 @@ export interface IStorage {
   getUserCredits(userId: string): Promise<number>;
   updateUserCredits(userId: string, amount: number): Promise<User | undefined>;
   getAllCreditTransactions(): Promise<CreditTransaction[]>;
+
+  // Credit score methods
+  getCreditScore(entityId: string, entityType: string): Promise<CreditScore | undefined>;
+  createOrUpdateCreditScore(score: InsertCreditScore): Promise<CreditScore>;
+  getCreditScoresByType(entityType: string): Promise<CreditScore[]>;
+
+  // Data contribution methods
+  createDataContribution(contribution: InsertDataContribution): Promise<DataContribution>;
+  getDataContributions(contributorId?: string): Promise<DataContribution[]>;
+  updateDataContribution(id: string, contribution: Partial<InsertDataContribution>): Promise<DataContribution | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -132,6 +149,14 @@ export class DbStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const result = await db.insert(users).values(insertUser).returning();
+    return result[0];
+  }
+
+  async updateUser(id: string, user: Partial<InsertUser & { preferences?: string; profileComplete?: string }>): Promise<User | undefined> {
+    const result = await db.update(users)
+      .set({ ...user, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
     return result[0];
   }
 
@@ -437,6 +462,74 @@ export class DbStorage implements IStorage {
   async getAllCreditTransactions(): Promise<CreditTransaction[]> {
     return await db.select().from(creditTransactions)
       .orderBy(desc(creditTransactions.createdAt));
+  }
+
+  // Credit score methods
+  async getCreditScore(entityId: string, entityType: string): Promise<CreditScore | undefined> {
+    const result = await db.select()
+      .from(creditScores)
+      .where(and(
+        eq(creditScores.entityId, entityId),
+        eq(creditScores.entityType, entityType)
+      ))
+      .limit(1);
+    return result[0];
+  }
+
+  async createOrUpdateCreditScore(score: InsertCreditScore): Promise<CreditScore> {
+    const existing = await this.getCreditScore(score.entityId, score.entityType);
+    
+    if (existing) {
+      const result = await db.update(creditScores)
+        .set({
+          ...score,
+          updatedAt: new Date(),
+          lastCalculated: new Date(),
+        })
+        .where(eq(creditScores.id, existing.id))
+        .returning();
+      return result[0];
+    } else {
+      const result = await db.insert(creditScores)
+        .values(score)
+        .returning();
+      return result[0];
+    }
+  }
+
+  async getCreditScoresByType(entityType: string): Promise<CreditScore[]> {
+    return await db.select()
+      .from(creditScores)
+      .where(eq(creditScores.entityType, entityType))
+      .orderBy(desc(creditScores.score));
+  }
+
+  // Data contribution methods
+  async createDataContribution(contribution: InsertDataContribution): Promise<DataContribution> {
+    const result = await db.insert(dataContributions)
+      .values(contribution)
+      .returning();
+    return result[0];
+  }
+
+  async getDataContributions(contributorId?: string): Promise<DataContribution[]> {
+    if (contributorId) {
+      return await db.select()
+        .from(dataContributions)
+        .where(eq(dataContributions.contributorId, contributorId))
+        .orderBy(desc(dataContributions.createdAt));
+    }
+    return await db.select()
+      .from(dataContributions)
+      .orderBy(desc(dataContributions.createdAt));
+  }
+
+  async updateDataContribution(id: string, contribution: Partial<InsertDataContribution>): Promise<DataContribution | undefined> {
+    const result = await db.update(dataContributions)
+      .set(contribution)
+      .where(eq(dataContributions.id, id))
+      .returning();
+    return result[0];
   }
 }
 

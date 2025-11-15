@@ -22,6 +22,10 @@ import ClientDashboardPage from "@/pages/ClientDashboardPage";
 import ContributorDashboardPage from "@/pages/ContributorDashboardPage";
 import AIBrainPage from "@/pages/AIBrainPage";
 import EnhancedMarketIntelligencePage from "@/pages/EnhancedMarketIntelligencePage";
+import AgentOnboarding from "@/pages/onboarding/AgentOnboarding";
+import DeveloperOnboarding from "@/pages/onboarding/DeveloperOnboarding";
+import ClientOnboarding from "@/pages/onboarding/ClientOnboarding";
+import ContributorOnboarding from "@/pages/onboarding/ContributorOnboarding";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -30,6 +34,35 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
+      
+      <Route path="/onboarding/agent">
+        {() => (
+          <ProtectedRoute>
+            <AgentOnboarding />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/onboarding/developer">
+        {() => (
+          <ProtectedRoute>
+            <DeveloperOnboarding />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/onboarding/client">
+        {() => (
+          <ProtectedRoute>
+            <ClientOnboarding />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/onboarding/contributor">
+        {() => (
+          <ProtectedRoute>
+            <ContributorOnboarding />
+          </ProtectedRoute>
+        )}
+      </Route>
       
       <Route path="/properties">
         {() => (

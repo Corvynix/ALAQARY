@@ -85,6 +85,11 @@ export const marketTrends = pgTable("market_trends", {
   newProjectIndicator: text("new_project_indicator"),
   salesVelocity: numeric("sales_velocity"),
   brokerPerformance: text("broker_performance"), // JSON: { topBrokers: [{ name, deals, area }] }
+  // Market Layer enhancements
+  realTimePriceAvg: numeric("real_time_price_avg"), // Real-time price average
+  supplyMetrics: text("supply_metrics"), // JSON: { available, underConstruction, planned }
+  topPerformingBrokers: text("top_performing_brokers"), // JSON: { brokers: [] }
+  pricePrediction: numeric("price_prediction"), // Predicted price change
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -107,10 +112,15 @@ export const leads = pgTable("leads", {
   message: text("message"),
   funnelStage: text("funnel_stage").default("curiosity"),
   purchaseProbability: numeric("purchase_probability").default("0"),
-  decisionType: text("decision_type"),
+  decisionType: text("decision_type"), // fast/hesitant/research-heavy
   behavioralTriggers: text("behavioral_triggers"),
   lastInteractionAt: timestamp("last_interaction_at"),
   sessionId: text("session_id"),
+  // Client Layer (Golden Layer) enhancements
+  interestLevel: numeric("interest_level"), // 0-100
+  regionPreferences: text("region_preferences").array().default(sql`ARRAY[]::text[]`),
+  pitchResponses: text("pitch_responses"), // JSON: { pitchId: response }
+  objectionPatterns: text("objection_patterns"), // JSON: { objections: [] }
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -190,6 +200,13 @@ export const userBehaviors = pgTable("user_behaviors", {
   pageUrl: text("page_url"),
   userAgent: text("user_agent"),
   ipAddress: text("ip_address"),
+  // Behavior Layer (Most Critical) enhancements
+  triggerType: text("trigger_type"), // What triggered this behavior
+  trustSignals: text("trust_signals"), // JSON: { signals: [] }
+  decisionDriver: text("decision_driver"), // What drove the decision
+  pitchStyle: text("pitch_style"), // Style of pitch that worked
+  agentClientCompatibility: numeric("agent_client_compatibility"), // Compatibility score
+  peakTimeIndicator: text("peak_time_indicator"), // Peak purchase time
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -278,3 +295,47 @@ export const insertExpertSessionSchema = createInsertSchema(expertSessions).omit
 
 export type InsertExpertSession = z.infer<typeof insertExpertSessionSchema>;
 export type ExpertSession = typeof expertSessions.$inferSelect;
+
+// Credit Score Tables
+export const creditScores = pgTable("credit_scores", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityId: text("entity_id").notNull(), // User ID, Property ID, or Agent ID
+  entityType: text("entity_type").notNull(), // "buyer", "project", "agent"
+  score: numeric("score").notNull().default("0"), // 0-1000
+  factors: text("factors"), // JSON: { factor: score }
+  lastCalculated: timestamp("last_calculated").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertCreditScoreSchema = createInsertSchema(creditScores).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastCalculated: true,
+});
+
+export type InsertCreditScore = z.infer<typeof insertCreditScoreSchema>;
+export type CreditScore = typeof creditScores.$inferSelect;
+
+// Data Contributions Table
+export const dataContributions = pgTable("data_contributions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  contributorId: text("contributor_id").notNull(),
+  dataType: text("data_type").notNull(), // property_info, pricing, market_trends, sales_data
+  region: text("region"),
+  data: text("data").notNull(), // JSON data
+  accuracyScore: numeric("accuracy_score").default("0"),
+  creditsEarned: numeric("credits_earned").default("0"),
+  isAnonymous: text("is_anonymous").default("true"),
+  verified: text("verified").default("false"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDataContributionSchema = createInsertSchema(dataContributions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertDataContribution = z.infer<typeof insertDataContributionSchema>;
+export type DataContribution = typeof dataContributions.$inferSelect;
