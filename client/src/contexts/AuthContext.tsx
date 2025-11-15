@@ -6,15 +6,33 @@ interface User {
   id: string;
   username: string;
   role: string;
+  email?: string;
+  phone?: string;
+  fullName?: string;
+  companyName?: string;
+  credits?: string;
+  accuracyScore?: string;
+}
+
+interface RegisterData {
+  email?: string;
+  phone?: string;
+  fullName?: string;
+  role?: string;
+  companyName?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string, additionalData?: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   isAdmin: boolean;
+  isAgent: boolean;
+  isDeveloper: boolean;
+  isClient: boolean;
+  isDataContributor: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,8 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async (credentials: { username: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/auth/register", credentials);
+    mutationFn: async (data: { username: string; password: string; email?: string; phone?: string; fullName?: string; role?: string; companyName?: string }) => {
+      const response = await apiRequest("POST", "/api/auth/register", data);
       return await response.json() as User;
     },
     onSuccess: () => {
@@ -60,8 +78,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loginMutation.mutateAsync({ username, password });
   };
 
-  const register = async (username: string, password: string) => {
-    await registerMutation.mutateAsync({ username, password });
+  const register = async (username: string, password: string, additionalData?: RegisterData) => {
+    await registerMutation.mutateAsync({ 
+      username, 
+      password,
+      ...additionalData
+    });
   };
 
   const logout = async () => {
@@ -69,9 +91,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAdmin = user?.role === "admin";
+  const isAgent = user?.role === "agent";
+  const isDeveloper = user?.role === "developer";
+  const isClient = user?.role === "client";
+  const isDataContributor = user?.role === "data_contributor";
 
   return (
-    <AuthContext.Provider value={{ user: user || null, isLoading, login, register, logout, isAdmin }}>
+    <AuthContext.Provider value={{ 
+      user: user || null, 
+      isLoading, 
+      login, 
+      register, 
+      logout, 
+      isAdmin,
+      isAgent,
+      isDeveloper,
+      isClient,
+      isDataContributor
+    }}>
       {children}
     </AuthContext.Provider>
   );

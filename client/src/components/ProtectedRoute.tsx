@@ -6,9 +6,10 @@ import { Loader2 } from "lucide-react";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireRole?: string;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAdmin = false, requireRole }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -17,8 +18,10 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
       setLocation("/login");
     } else if (!isLoading && requireAdmin && user?.role !== "admin") {
       setLocation("/");
+    } else if (!isLoading && requireRole && user?.role !== requireRole) {
+      setLocation("/");
     }
-  }, [user, isLoading, setLocation, requireAdmin]);
+  }, [user, isLoading, setLocation, requireAdmin, requireRole]);
 
   if (isLoading) {
     return (
@@ -28,7 +31,15 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     );
   }
 
-  if (!user || (requireAdmin && user.role !== "admin")) {
+  if (!user) {
+    return null;
+  }
+
+  if (requireAdmin && user.role !== "admin") {
+    return null;
+  }
+
+  if (requireRole && user.role !== requireRole) {
     return null;
   }
 

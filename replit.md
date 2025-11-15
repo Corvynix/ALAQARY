@@ -1,29 +1,96 @@
-# Luxury Real Estate Consultant Website
+# Real Estate Intelligence OS
 
 ## Overview
 
-A premium, conversion-focused luxury real estate consultant website designed to position the owner as the most trusted real estate authority in the region. The platform combines emotional psychology with modern web technologies to transform visitors into clients through strategic trust-building, educational content, and seamless consultation flows.
+A comprehensive multi-sided real estate intelligence platform that functions like "OpenAI for real estate" - featuring a central AI brain, network effects, and role-based ecosystems. The system serves four distinct user types (Agents, Developers, Clients, and Data Contributors) with specialized dashboards and tools.
 
-The website targets property buyers and investors by addressing five key emotional gaps: Trust, Confusion, Risk, Aspiration, and Status. Every element is crafted to feel like a $5M brand experience, from the deep black and luxury gold color scheme to the bilingual Arabic-first content strategy.
+**Platform Vision:** Transform real estate through data intelligence, AI-powered insights, and invisible monetization via a credit-based system. Each role contributes to and benefits from the platform's collective intelligence.
+
+### Recent Changes (November 15, 2025)
+
+**Multi-Role Transformation Complete:**
+- Migrated from single luxury consultant website to comprehensive multi-sided platform
+- Implemented 4 role-based user types with specialized dashboards
+- Enhanced registration with role selection and profile management
+- Added credit-based economy foundation (accuracyScore, credits tracking)
+- Created role-specific routing with access control
+- Prepared infrastructure for AI Real Estate Brain and shared features
+
+The platform now supports a complete ecosystem where Agents get leads intelligence, Developers get market insights, Clients get smart recommendations, and Data Contributors earn credits for accurate data.
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-## Admin Access
+## Role-Based Access System
 
+The platform now supports **5 user roles**, each with specialized dashboards and features:
+
+### 1. Admin Role
 For testing admin features, an admin account has been created:
 - **Username:** admin
 - **Password:** admin123
 
-This account has access to:
+Admin access includes:
 - Market Intelligence Dashboard
 - Agent Intelligence
 - Client Qualification System
 - Behavior Insights
 - Super Intelligence Dashboard
 
-**Note:** Regular visitors to the website will NOT see these admin links - they are only visible after logging in with an admin account.
+### 2. Agent Role (`/agent`)
+**Purpose:** Sales professionals who need leads intelligence and performance tools
+
+**Dashboard Features:**
+- **Leads Intelligence Hub:** High-potential leads analysis with AI scoring
+- **AI Scripts Center:** Call scripts and conversation templates
+- **Performance Stats:** Conversion rates, call analytics, revenue tracking
+- **Client Relationship Manager:** Pipeline and follow-up system
+
+**Registration Fields:** email, phone, fullName, companyName
+
+### 3. Developer Role (`/developer`)
+**Purpose:** Real estate developers who need market insights and project validation
+
+**Dashboard Features:**
+- **Demand Heatmaps:** Geographic demand visualization with zone scoring
+- **Launch Project Checker:** Feasibility analysis for new developments
+- **Pricing Recommendation Engine:** AI-powered pricing suggestions
+- **Approval Score System:** Project approval probability assessment
+
+**Registration Fields:** email, phone, fullName, companyName
+
+### 4. Client Role (`/client`)
+**Purpose:** Property buyers and investors seeking smart recommendations
+
+**Dashboard Features:**
+- **Smart Match Questions:** AI-powered property matching system
+- **Compare Properties Tool:** Side-by-side comparison with scoring
+- **Book Expert Session:** Schedule consultations with specialists
+- **Favorites & Saved Searches:** Personal property collections
+
+**Registration Fields:** email, phone, fullName
+
+### 5. Data Contributor Role (`/contributor`)
+**Purpose:** Market insiders who provide data in exchange for credits
+
+**Dashboard Features:**
+- **Add Data Wizard:** Structured data submission interface
+- **Earn Credits System:** Credit rewards for accurate contributions
+- **Accuracy Score Tracker:** Performance metrics (0-100% accuracy)
+- **Confidential Mode:** Privacy-protected submission system
+
+**Registration Fields:** email, phone, fullName
+**Special Features:** accuracyScore tracking, credits balance
+
+### Registration Flow
+
+Users now select their role during registration:
+1. **Step 1:** Choose role (Agent, Developer, Client, or Data Contributor)
+2. **Step 2:** Provide role-specific profile information
+3. **Auto-redirect:** Automatic routing to role-specific dashboard after login
+
+**Note:** All dashboards are protected by role-based access control. Users can only access their designated dashboard.
 
 ## System Architecture
 
@@ -73,13 +140,27 @@ This account has access to:
 - Schema-first design with automatic TypeScript type inference
 
 **Database Schema**
-- `users` - Admin/user authentication (username, password, role)
+
+**Core Tables:**
+- `users` - Multi-role authentication system with profile fields:
+  - Roles: admin, agent, developer, client, data_contributor
+  - Profile: email, phone, fullName, companyName
+  - Credits economy: credits (decimal), accuracyScore (decimal)
+  - Preferences: profileComplete (boolean), preferences (jsonb)
 - `properties` - Property listings with bilingual content, images array, status tracking
 - `market_trends` - Market analysis data with demand levels, price changes
 - `leads` - Contact form submissions for conversion tracking
 - `content` - Blog posts and educational content with bilingual support
 
-All tables include UUID primary keys and appropriate timestamps.
+**New Platform Tables:**
+- `creditTransactions` - Track credit earnings and spending
+  - userId, amount, transactionType (earn/spend), description
+- `userFavorites` - Save favorite properties per user
+  - userId, propertyId, notes, createdAt
+- `expertSessions` - Book consultation sessions
+  - userId, sessionType, scheduledFor, status, notes
+
+All tables use `varchar` UUID primary keys for consistency. ID columns are NEVER changed from their established type to maintain data integrity.
 
 ### Build & Deployment Strategy
 

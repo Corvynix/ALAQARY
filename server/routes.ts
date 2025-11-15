@@ -27,7 +27,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication Routes
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, password } = insertUserSchema.parse(req.body);
+      const { username, password, email, phone, fullName, role, companyName } = insertUserSchema.parse(req.body);
       
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
@@ -37,7 +37,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await storage.createUser({
         username,
-        password: hashedPassword
+        password: hashedPassword,
+        email,
+        phone,
+        fullName,
+        role: role || "client",
+        companyName
       });
 
       const token = generateToken(user.id, user.role);
@@ -51,7 +56,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        email: user.email,
+        phone: user.phone,
+        fullName: user.fullName,
+        companyName: user.companyName,
+        credits: user.credits,
+        accuracyScore: user.accuracyScore
       });
     } catch (error: any) {
       console.error("Error registering user:", error);
@@ -91,7 +102,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
+        email: user.email,
+        phone: user.phone,
+        fullName: user.fullName,
+        companyName: user.companyName,
+        credits: user.credits,
+        accuracyScore: user.accuracyScore
       });
     } catch (error) {
       console.error("Error logging in:", error);
@@ -112,10 +129,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       id: authReq.user.id,
       username: authReq.user.username,
-      role: authReq.user.role
+      role: authReq.user.role,
+      email: authReq.user.email,
+      phone: authReq.user.phone,
+      fullName: authReq.user.fullName,
+      companyName: authReq.user.companyName,
+      credits: authReq.user.credits,
+      accuracyScore: authReq.user.accuracyScore
     });
   });
   
+  // User Favorites Routes
+  app.get("/api/favorites", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const favorites = [];
+      res.json(favorites);
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+      res.status(500).json({ error: "Failed to fetch favorites" });
+    }
+  });
+
+  app.post("/api/favorites", requireAuth, async (req, res) => {
+    try {
+      const authReq = req as AuthRequest;
+      const { propertyId, notes } = req.body;
+      
+      const favorite = {
+        id: Math.random().toString(36).substring(7),
+        userId: authReq.user!.id,
+        propertyId,
+        notes,
+        createdAt: new Date()
+      };
+      
+      res.status(201).json(favorite);
+    } catch (error) {
+      console.error("Error adding favorite:", error);
+      res.status(500).json({ error: "Failed to add favorite" });
+    }
+  });
 
   // Properties Routes
   app.get("/api/properties", async (req, res) => {

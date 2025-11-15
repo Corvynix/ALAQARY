@@ -21,6 +21,10 @@ import AgentIntelligencePage from "@/pages/AgentIntelligencePage";
 import ClientQualificationPage from "@/pages/ClientQualificationPage";
 import BehaviorInsightsPage from "@/pages/BehaviorInsightsPage";
 import SuperIntelligenceDashboard from "@/pages/SuperIntelligenceDashboard";
+import AgentDashboardPage from "@/pages/AgentDashboardPage";
+import DeveloperDashboardPage from "@/pages/DeveloperDashboardPage";
+import ClientDashboardPage from "@/pages/ClientDashboardPage";
+import ContributorDashboardPage from "@/pages/ContributorDashboardPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -76,6 +80,38 @@ function Router() {
         {() => (
           <ProtectedRoute requireAdmin>
             <SuperIntelligenceDashboard />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/agent-dashboard">
+        {() => (
+          <ProtectedRoute requireRole="agent">
+            <AgentDashboardPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/developer-dashboard">
+        {() => (
+          <ProtectedRoute requireRole="developer">
+            <DeveloperDashboardPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/client-dashboard">
+        {() => (
+          <ProtectedRoute requireRole="client">
+            <ClientDashboardPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      
+      <Route path="/contributor-dashboard">
+        {() => (
+          <ProtectedRoute requireRole="data_contributor">
+            <ContributorDashboardPage />
           </ProtectedRoute>
         )}
       </Route>

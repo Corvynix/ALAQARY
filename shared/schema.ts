@@ -7,12 +7,27 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
-  role: text("role").notNull().default("user"),
+  email: text("email"),
+  phone: text("phone"),
+  role: text("role").notNull().default("client"),
+  fullName: text("full_name"),
+  companyName: text("company_name"),
+  credits: numeric("credits").default("0"),
+  accuracyScore: numeric("accuracy_score").default("0"),
+  profileComplete: text("profile_complete").default("false"),
+  preferences: text("preferences"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  email: true,
+  phone: true,
+  role: true,
+  fullName: true,
+  companyName: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -208,3 +223,58 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+export const creditTransactions = pgTable("credit_transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  amount: numeric("amount").notNull(),
+  type: text("type").notNull(),
+  reason: text("reason"),
+  relatedEntityId: text("related_entity_id"),
+  relatedEntityType: text("related_entity_type"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSchema>;
+export type CreditTransaction = typeof creditTransactions.$inferSelect;
+
+export const userFavorites = pgTable("user_favorites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  propertyId: text("property_id").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserFavoriteSchema = createInsertSchema(userFavorites).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserFavorite = z.infer<typeof insertUserFavoriteSchema>;
+export type UserFavorite = typeof userFavorites.$inferSelect;
+
+export const expertSessions = pgTable("expert_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: text("user_id").notNull(),
+  agentId: text("agent_id"),
+  sessionDate: timestamp("session_date").notNull(),
+  sessionType: text("session_type").notNull(),
+  status: text("status").default("pending"),
+  notes: text("notes"),
+  meetingLink: text("meeting_link"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertExpertSessionSchema = createInsertSchema(expertSessions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertExpertSession = z.infer<typeof insertExpertSessionSchema>;
+export type ExpertSession = typeof expertSessions.$inferSelect;
