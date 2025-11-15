@@ -1,82 +1,94 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Clock, TrendingUp, MessageSquare, AlertCircle, Target, Zap } from "lucide-react";
+import { Clock, TrendingUp, MessageSquare, AlertCircle, Target, Zap, Activity } from "lucide-react";
+import { useBehaviorTriggers, useBehaviorPatterns } from "@/hooks/useIntelligence";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface BehaviorInsightsProps {
   language: "ar" | "en";
 }
 
 export default function BehaviorInsights({ language }: BehaviorInsightsProps) {
-  const { data: triggers } = useQuery<any>({
-    queryKey: ["/api/behavior/triggers"],
-  });
-
-  const { data: peakTimes } = useQuery<any>({
-    queryKey: ["/api/behavior/peak-times"],
-  });
-
-  const { data: bestScripts } = useQuery<any>({
-    queryKey: ["/api/behavior/best-scripts"],
-  });
-
-  const { data: objections } = useQuery<any>({
-    queryKey: ["/api/behavior/common-objections"],
-  });
+  const { data: triggersData, isLoading: triggersLoading } = useBehaviorTriggers();
+  const { data: patternsData, isLoading: patternsLoading } = useBehaviorPatterns();
 
   const content = {
     ar: {
       title: "ذكاء السلوك",
       subtitle: "طبقة السلوك - أخطر طبقة وأكتر واحدة سريّة",
-      whatTriggers: "إيه اللي بيخلي عميل يرد؟",
-      whenPeopleBuy: "إمتى معظم الناس بتشتري؟",
-      peakTimes: "أوقات الذروة",
-      bestScripts: "أفضل Scriptات",
-      commonObjections: "أنهي اعتراض بيتكرر؟",
-      averageTimeToTrust: "متوسط الوقت للوصول للثقة",
-      averageTimeToPurchase: "متوسط الوقت للشراء",
-      formSubmissions: "إرسال النماذج",
-      whatsappClicks: "نقرات واتساب",
-      propertyViews: "عرض العقارات",
-      peakEngagementHours: "ساعات الذروة للتفاعل",
-      script: "Script",
-      agent: "المستشار",
-      successRate: "معدل النجاح",
-      useCase: "حالة الاستخدام",
-      objection: "الاعتراض",
+      triggers: "محفزات السلوك",
+      patterns: "أنماط السلوك",
+      conversionRate: "معدل التحويل",
       frequency: "التكرار",
-      minutes: "دقيقة",
-      hours: "ساعة",
-      days: "يوم",
+      avgTimeSpent: "متوسط الوقت",
+      occurrences: "التكرارات",
+      successRate: "معدل النجاح",
+      insight: "رؤية",
+      recommendation: "التوصية",
+      insights: "الرؤى",
       noData: "لا توجد بيانات",
+      loading: "جاري التحميل...",
+      trigger: "المحفز",
+      pattern: "النمط",
+      detailedView: "عرض تفصيلي",
     },
     en: {
       title: "Behavior Intelligence",
       subtitle: "Behavior Layer - The Most Critical Secret Layer",
-      whatTriggers: "What Makes Clients Respond?",
-      whenPeopleBuy: "When Do Most People Buy?",
-      peakTimes: "Peak Times",
-      bestScripts: "Best Scripts",
-      commonObjections: "What Objections Recur?",
-      averageTimeToTrust: "Average Time to Trust",
-      averageTimeToPurchase: "Average Time to Purchase",
-      formSubmissions: "Form Submissions",
-      whatsappClicks: "WhatsApp Clicks",
-      propertyViews: "Property Views",
-      peakEngagementHours: "Peak Engagement Hours",
-      script: "Script",
-      agent: "Agent",
-      successRate: "Success Rate",
-      useCase: "Use Case",
-      objection: "Objection",
+      triggers: "Behavior Triggers",
+      patterns: "Behavior Patterns",
+      conversionRate: "Conversion Rate",
       frequency: "Frequency",
-      minutes: "minutes",
-      hours: "hours",
-      days: "days",
+      avgTimeSpent: "Avg Time",
+      occurrences: "Occurrences",
+      successRate: "Success Rate",
+      insight: "Insight",
+      recommendation: "Recommendation",
+      insights: "Insights",
       noData: "No data available",
+      loading: "Loading...",
+      trigger: "Trigger",
+      pattern: "Pattern",
+      detailedView: "Detailed View",
     },
   };
+
+  if (triggersLoading || patternsLoading) {
+    return (
+      <div className="p-6">
+        <div className={`text-2xl font-bold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
+          {content[language].title}
+        </div>
+        <div className="text-muted-foreground">{content[language].loading}</div>
+      </div>
+    );
+  }
+
+  if (!triggersData && !patternsData) {
+    return (
+      <div className="p-6">
+        <div className={`text-2xl font-bold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
+          {content[language].title}
+        </div>
+        <div className="text-muted-foreground">{content[language].noData}</div>
+      </div>
+    );
+  }
+
+  const COLORS = ['hsl(var(--primary))', '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  const triggersChartData = triggersData?.triggers.slice(0, 6).map(t => ({
+    name: t.trigger.length > 25 ? t.trigger.substring(0, 25) + '...' : t.trigger,
+    conversion: parseFloat((t.conversionRate * 100).toFixed(1)),
+    frequency: t.count,
+  })) || [];
+
+  const patternsChartData = patternsData?.patterns.slice(0, 6).map(p => ({
+    name: p.pattern.length > 30 ? p.pattern.substring(0, 30) + '...' : p.pattern,
+    occurrences: p.occurrences,
+    success: parseFloat((p.conversionRate * 100).toFixed(1)),
+  })) || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -89,217 +101,133 @@ export default function BehaviorInsights({ language }: BehaviorInsightsProps) {
         </p>
       </div>
 
-      {/* What Triggers Responses */}
-      {triggers && (
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].whatTriggers}
-            </CardTitle>
-            <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              ايه اللي بيخلي عميل يرد؟ - انهي كلمة في المكالمة بتطمن العميل؟
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                  <span className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                    {content[language].formSubmissions}
-                  </span>
-                </div>
-                <div className={`text-3xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {triggers.formSubmissions || 0}
-                </div>
-              </div>
+      {/* Behavior Triggers */}
+      {triggersData && triggersData.triggers && triggersData.triggers.length > 0 && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                <Activity className="h-5 w-5 text-primary" />
+                {content[language].triggers}
+              </CardTitle>
+              <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
+                What actions lead to conversions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={triggersChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="frequency" fill="hsl(var(--primary))" name={content[language].frequency} />
+                  <Bar yAxisId="right" dataKey="conversion" fill="#82ca9d" name={content[language].conversionRate + ' %'} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className="h-5 w-5 text-primary" />
-                  <span className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                    {content[language].whatsappClicks}
-                  </span>
-                </div>
-                <div className={`text-3xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {triggers.whatsappClicks || 0}
-                </div>
-              </div>
-
-              <div className="p-4 border rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  <span className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                    {content[language].propertyViews}
-                  </span>
-                </div>
-                <div className={`text-3xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {triggers.propertyViews || 0}
-                </div>
-              </div>
-            </div>
-
-            {triggers.peakEngagementHours && triggers.peakEngagementHours.length > 0 && (
-              <div className="mt-6">
-                <div className={`text-sm font-medium mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {content[language].peakEngagementHours}
-                </div>
-                <div className="space-y-2">
-                  {triggers.peakEngagementHours.slice(0, 5).map((hour: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between">
+          {/* Triggers List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
+                {content[language].triggers} - {content[language].detailedView}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {triggersData.triggers.slice(0, 10).map((trigger, index) => (
+                  <div key={index} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
+                        {trigger.trigger}
+                      </div>
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className={`text-sm ${language === 'ar' ? 'font-arabic' : ''}`}>
-                          {hour.hour}:00
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Progress value={(hour.count / triggers.peakEngagementHours[0].count) * 100} className="w-32 h-2" />
-                        <span className="text-sm font-medium">{hour.count}</span>
+                        <Badge variant="outline">
+                          {trigger.count}x
+                        </Badge>
+                        <Badge className={trigger.conversionRate > 0.5 ? 'bg-green-500' : trigger.conversionRate > 0.3 ? 'bg-yellow-500' : 'bg-gray-500'}>
+                          {(trigger.conversionRate * 100).toFixed(1)}%
+                        </Badge>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* When People Buy */}
-      {peakTimes && (
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].whenPeopleBuy}
-            </CardTitle>
-            <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              إمتى معظم الناس بتشتري؟ - متوسط الوقت للوصول للثقة والشراء
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <div className={`text-sm font-medium mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {content[language].averageTimeToTrust}
-                </div>
-                <div className={`text-3xl font-bold mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {peakTimes.averageTimeToTrust || 0} {content[language].minutes}
-                </div>
-                <Progress value={Math.min(100, (peakTimes.averageTimeToTrust || 0) / 60 * 100)} className="h-2" />
-              </div>
-
-              <div>
-                <div className={`text-sm font-medium mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {content[language].averageTimeToPurchase}
-                </div>
-                <div className={`text-3xl font-bold mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {peakTimes.averageTimeToPurchase || 0} {content[language].days}
-                </div>
-                <Progress value={Math.min(100, (peakTimes.averageTimeToPurchase || 0) / 30 * 100)} className="h-2" />
-              </div>
-            </div>
-
-            {peakTimes.peakEngagementTimes && peakTimes.peakEngagementTimes.length > 0 && (
-              <div className="mt-6">
-                <div className={`text-sm font-medium mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {content[language].peakTimes}
-                </div>
-                <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
-                  {peakTimes.peakEngagementTimes.slice(0, 12).map((time: any, index: number) => (
-                    <div key={index} className="text-center">
-                      <div className={`text-xs mb-1 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                        {time.hour}:00
-                      </div>
-                      <div className="h-20 bg-muted rounded flex items-end justify-center p-1">
-                        <div
-                          className="bg-primary w-full rounded"
-                          style={{
-                            height: `${(time.engagement / peakTimes.peakEngagementTimes[0].engagement) * 100}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Best Scripts */}
-      {bestScripts && bestScripts.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].bestScripts}
-            </CardTitle>
-            <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              انهي أسلوب Pitch بيقفل أسرع؟ - تكتب أفضل Scriptات في مصر
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {bestScripts.slice(0, 5).map((script: any, index: number) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline">#{index + 1}</Badge>
-                      <Badge className="bg-primary">
-                        {script.successRate}% {content[language].successRate}
-                      </Badge>
-                    </div>
-                    <div className={`text-sm text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
-                      {content[language].agent}: {script.agent}
+                    <div className="text-xs text-muted-foreground">
+                      {content[language].avgTimeSpent}: {trigger.averageTimeTo}
                     </div>
                   </div>
-                  <div className={`mb-3 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                    {script.script}
-                  </div>
-                  {script.useCase && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <MessageSquare className="h-3 w-3" />
-                      <span>{content[language].useCase}: {script.useCase}</span>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
 
-      {/* Common Objections */}
-      {objections && objections.commonObjections && objections.commonObjections.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].commonObjections}
-            </CardTitle>
-            <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              انهي اعتراض بيتكرر؟ - انهي سعر بيخوف؟
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {objections.commonObjections.slice(0, 10).map((obj: any, index: number) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                      {obj.objection}
+      {/* Behavior Patterns */}
+      {patternsData && patternsData.patterns && patternsData.patterns.length > 0 && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                <TrendingUp className="h-5 w-5 text-primary" />
+                {content[language].patterns}
+              </CardTitle>
+              <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
+                Common user behavior sequences
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={patternsChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
+                  <Tooltip />
+                  <Legend />
+                  <Bar yAxisId="left" dataKey="occurrences" fill="hsl(var(--primary))" name={content[language].occurrences} />
+                  <Bar yAxisId="right" dataKey="success" fill="#82ca9d" name={content[language].successRate + ' %'} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Patterns List */}
+          <Card>
+            <CardHeader>
+              <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
+                {content[language].patterns} - {content[language].detailedView}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {patternsData.patterns.slice(0, 10).map((pattern, index) => (
+                  <div key={index} className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
+                        {pattern.pattern}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          {pattern.occurrences}x
+                        </Badge>
+                        <Badge className={pattern.conversionRate > 0.5 ? 'bg-green-500' : pattern.conversionRate > 0.3 ? 'bg-yellow-500' : 'bg-gray-500'}>
+                          {(pattern.conversionRate * 100).toFixed(1)}%
+                        </Badge>
+                      </div>
                     </div>
-                    <Badge variant="destructive">
-                      {obj.count} {content[language].frequency}
-                    </Badge>
+                    <div className={`text-sm text-muted-foreground mt-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                      {pattern.insight}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );
 }
-

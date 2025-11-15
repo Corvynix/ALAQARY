@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Users, TrendingUp, Clock, DollarSign, MessageSquare, Target } from "lucide-react";
+import { Users, TrendingUp, Clock, DollarSign, Trophy, Award, Target, Star } from "lucide-react";
+import { useAgentPerformance } from "@/hooks/useIntelligence";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from "recharts";
 
 interface AgentIntelligenceProps {
   agentId: string;
@@ -10,60 +11,58 @@ interface AgentIntelligenceProps {
 }
 
 export default function AgentIntelligence({ agentId, language }: AgentIntelligenceProps) {
-  const { data: intelligence, isLoading } = useQuery<any>({
-    queryKey: [`/api/agents/${agentId}/intelligence`],
-  });
+  const { data, isLoading } = useAgentPerformance(agentId);
 
   const content = {
     ar: {
       title: "ذكاء المستشار",
       subtitle: "تحليل أداء المستشار العقاري",
-      bestScripts: "أفضل Scriptات",
-      commonObjections: "الاعتراضات الشائعة",
-      bestPrices: "أفضل الأسعار",
-      clientTypes: "أنواع العملاء",
-      peakTimes: "أوقات الذروة",
-      successRate: "معدل النجاح",
-      frequency: "التكرار",
-      bestResponse: "أفضل رد",
-      deals: "صفقات",
-      contacts: "اتصالات",
-      useCase: "حالة الاستخدام",
-      context: "السياق",
-      priceRange: "نطاق السعر",
-      count: "العدد",
-      hour: "الساعة",
-      dailyContacts: "الاتصالات اليومية",
+      rank: "الترتيب",
+      overallScore: "النتيجة الإجمالية",
+      tier: "المستوى",
+      percentile: "النسبة المئوية",
       closingRate: "معدل الإغلاق",
       responseSpeed: "سرعة الرد",
       totalDeals: "إجمالي الصفقات",
       totalRevenue: "إجمالي الإيرادات",
+      avgDealPrice: "متوسط سعر الصفقة",
+      strengths: "نقاط القوة",
+      areasForImprovement: "مجالات التحسين",
+      performanceMetrics: "مقاييس الأداء",
+      closingScore: "درجة الإغلاق",
+      volumeScore: "درجة الحجم",
+      revenueScore: "درجة الإيرادات",
+      speedScore: "درجة السرعة",
       noData: "لا توجد بيانات",
+      outOf: "من",
+      agents: "مستشارين",
+      minutes: "دقيقة",
+      egp: "جنيه",
     },
     en: {
       title: "Agent Intelligence",
       subtitle: "Real Estate Consultant Performance Analysis",
-      bestScripts: "Best Scripts",
-      commonObjections: "Common Objections",
-      bestPrices: "Best Prices",
-      clientTypes: "Client Types",
-      peakTimes: "Peak Times",
-      successRate: "Success Rate",
-      frequency: "Frequency",
-      bestResponse: "Best Response",
-      deals: "deals",
-      contacts: "contacts",
-      useCase: "Use Case",
-      context: "Context",
-      priceRange: "Price Range",
-      count: "Count",
-      hour: "Hour",
-      dailyContacts: "Daily Contacts",
+      rank: "Rank",
+      overallScore: "Overall Score",
+      tier: "Tier",
+      percentile: "Percentile",
       closingRate: "Closing Rate",
       responseSpeed: "Response Speed",
       totalDeals: "Total Deals",
       totalRevenue: "Total Revenue",
+      avgDealPrice: "Avg Deal Price",
+      strengths: "Strengths",
+      areasForImprovement: "Areas for Improvement",
+      performanceMetrics: "Performance Metrics",
+      closingScore: "Closing Score",
+      volumeScore: "Volume Score",
+      revenueScore: "Revenue Score",
+      speedScore: "Speed Score",
       noData: "No data available",
+      outOf: "out of",
+      agents: "agents",
+      minutes: "min",
+      egp: "EGP",
     },
   };
 
@@ -78,7 +77,7 @@ export default function AgentIntelligence({ agentId, language }: AgentIntelligen
     );
   }
 
-  if (!intelligence || !intelligence.agent) {
+  if (!data) {
     return (
       <div className="p-6">
         <div className={`text-2xl font-bold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
@@ -89,7 +88,29 @@ export default function AgentIntelligence({ agentId, language }: AgentIntelligen
     );
   }
 
-  const agent = intelligence.agent;
+  const getTierColor = (tier: string) => {
+    switch (tier.toLowerCase()) {
+      case 'elite': return 'bg-purple-500';
+      case 'top': return 'bg-blue-500';
+      case 'rising': return 'bg-green-500';
+      case 'developing': return 'bg-yellow-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
+  const metricsData = [
+    { name: content[language].closingScore, value: (data.metrics.closingScore * 100).toFixed(0) },
+    { name: content[language].volumeScore, value: (data.metrics.volumeScore * 100).toFixed(0) },
+    { name: content[language].revenueScore, value: (data.metrics.revenueScore * 100).toFixed(0) },
+    { name: content[language].speedScore, value: (data.metrics.speedScore * 100).toFixed(0) },
+  ];
+
+  const radarData = [
+    { metric: language === 'ar' ? 'الإغلاق' : 'Closing', value: data.metrics.closingScore * 100 },
+    { metric: language === 'ar' ? 'الحجم' : 'Volume', value: data.metrics.volumeScore * 100 },
+    { metric: language === 'ar' ? 'الإيرادات' : 'Revenue', value: data.metrics.revenueScore * 100 },
+    { metric: language === 'ar' ? 'السرعة' : 'Speed', value: data.metrics.speedScore * 100 },
+  ];
 
   return (
     <div className="p-6 space-y-6">
@@ -98,204 +119,218 @@ export default function AgentIntelligence({ agentId, language }: AgentIntelligen
           {content[language].title}
         </h1>
         <p className={`text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
-          {content[language].subtitle} - {agent.name}
+          {content[language].subtitle} - {data.agentName}
         </p>
       </div>
 
       {/* Agent Performance Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card data-testid="card-agent-rank">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {content[language].dailyContacts}
+              {content[language].rank}
             </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {Number(agent.dailyContacts || 0)}
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`} data-testid="text-agent-rank">
+              #{data.rank} <span className="text-sm text-muted-foreground">
+                {content[language].outOf} {data.totalAgents} {content[language].agents}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <Badge className={getTierColor(data.tier)} data-testid="badge-agent-tier">{data.tier}</Badge>
+              <span className="text-xs text-muted-foreground" data-testid="text-agent-percentile">
+                Top {data.percentile}%
+              </span>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card data-testid="card-overall-score">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
+              {content[language].overallScore}
+            </CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`} data-testid="text-overall-score">
+              {(data.overallScore * 100).toFixed(0)}
+            </div>
+            <Progress value={data.overallScore * 100} className="h-2 mt-2" data-testid="progress-overall-score" />
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-closing-rate">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].closingRate}
             </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {Number(agent.closingRate || 0)}%
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`} data-testid="text-closing-rate">
+              {data.closingRate}%
             </div>
-            <Progress value={Number(agent.closingRate || 0)} className="h-2 mt-2" />
+            <Progress value={data.closingRate} className="h-2 mt-2" data-testid="progress-closing-rate" />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card data-testid="card-response-speed">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].responseSpeed}
             </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {Number(agent.responseSpeed || 0)} min
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`} data-testid="text-response-speed">
+              {data.responseSpeed} {content[language].minutes}
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      {/* Deals and Revenue */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card data-testid="card-total-deals">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
             <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
               {content[language].totalDeals}
             </CardTitle>
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {Number(agent.totalDeals || 0)}
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`} data-testid="text-total-deals">
+              {data.totalDeals}
             </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              Revenue: {(Number(agent.totalRevenue || 0) / 1000000).toFixed(1)}M EGP
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-total-revenue">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
+              {content[language].totalRevenue}
+            </CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`} data-testid="text-total-revenue">
+              {(data.totalRevenue / 1000000).toFixed(1)}M {content[language].egp}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card data-testid="card-avg-deal-price">
+          <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
+            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
+              {content[language].avgDealPrice}
+            </CardTitle>
+            <Award className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`} data-testid="text-avg-deal-price">
+              {(data.averageDealPrice / 1000000).toFixed(1)}M {content[language].egp}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Best Scripts */}
-      {intelligence.bestScripts && intelligence.bestScripts.length > 0 && (
-        <Card>
+      {/* Performance Metrics Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Bar Chart */}
+        <Card data-testid="card-metrics-bar-chart">
           <CardHeader>
             <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].bestScripts}
+              {content[language].performanceMetrics}
             </CardTitle>
             <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              أفضل Scriptات جاهزة - أفضل رد على العميل - أفضل سعر يتقال - أفضل مشروع يترشح
+              مقاييس الأداء في الفئات المختلفة
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {intelligence.bestScripts.slice(0, 5).map((script: any, index: number) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <Badge variant="outline">#{index + 1}</Badge>
-                    <Badge className="bg-primary">
-                      {script.successRate}% {content[language].successRate}
-                    </Badge>
-                  </div>
-                  <div className={`mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                    {script.script}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MessageSquare className="h-3 w-3" />
-                    <span>{content[language].useCase}: {script.useCase}</span>
-                  </div>
-                </div>
-              ))}
+            <div data-testid="chart-performance-bar">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={metricsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Common Objections */}
-      {intelligence.commonObjections && intelligence.commonObjections.length > 0 && (
-        <Card>
+        {/* Radar Chart */}
+        <Card data-testid="card-metrics-radar-chart">
           <CardHeader>
             <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].commonObjections}
+              {content[language].performanceMetrics}
             </CardTitle>
             <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              الاعتراضات اللي بيسمعها - أفضل رد على العميل
+              تحليل شامل للأداء
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {intelligence.commonObjections.slice(0, 10).map((obj: any, index: number) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                      {obj.objection}
-                    </div>
-                    <Badge variant="outline">
-                      {obj.frequency} {content[language].frequency}
-                    </Badge>
-                  </div>
-                  <div className={`text-sm text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
-                    <strong>{content[language].bestResponse}:</strong> {obj.bestResponse}
-                  </div>
-                </div>
-              ))}
+            <div data-testid="chart-performance-radar">
+              <ResponsiveContainer width="100%" height={300}>
+                <RadarChart data={radarData}>
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="metric" />
+                  <PolarRadiusAxis domain={[0, 100]} />
+                  <Radar name="Score" dataKey="value" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.6} />
+                </RadarChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
 
-      {/* Best Prices */}
-      {intelligence.bestPrices && intelligence.bestPrices.length > 0 && (
-        <Card>
+      {/* Strengths and Areas for Improvement */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card data-testid="card-strengths">
           <CardHeader>
             <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].bestPrices}
+              {content[language].strengths}
             </CardTitle>
-            <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              الأسعار اللي بيقفل بيها - أفضل سعر يتقال
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {intelligence.bestPrices.slice(0, 5).map((price: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <div className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                      {(price.price / 1000000).toFixed(1)}M EGP
-                    </div>
-                    <div className="text-sm text-muted-foreground">{price.context}</div>
+            <div className="space-y-2">
+              {data.strengths.map((strength, index) => (
+                <div key={index} className="flex items-start gap-2" data-testid={`item-strength-${index}`}>
+                  <div className="h-5 w-5 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs">✓</span>
                   </div>
-                  <Badge variant="outline">{price.successRate}%</Badge>
+                  <span className={`text-sm ${language === 'ar' ? 'font-arabic' : ''}`}>{strength}</span>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {/* Client Types */}
-      {intelligence.clientTypes && intelligence.clientTypes.length > 0 && (
-        <Card>
+        <Card data-testid="card-improvements">
           <CardHeader>
             <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].clientTypes}
+              {content[language].areasForImprovement}
             </CardTitle>
-            <CardDescription className={language === 'ar' ? 'font-arabic' : ''}>
-              انهي مستشار بيقفل النوع الفلاني أحسن من غيره
-            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {intelligence.clientTypes.map((type: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <div className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                      {type.type}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {type.count} {content[language].count}
-                    </div>
+            <div className="space-y-2">
+              {data.areasForImprovement.map((area, index) => (
+                <div key={index} className="flex items-start gap-2" data-testid={`item-improvement-${index}`}>
+                  <div className="h-5 w-5 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-white text-xs">!</span>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Progress value={type.successRate} className="w-24 h-2" />
-                    <span className="text-sm font-medium">{type.successRate}%</span>
-                  </div>
+                  <span className={`text-sm ${language === 'ar' ? 'font-arabic' : ''}`}>{area}</span>
                 </div>
               ))}
             </div>
           </CardContent>
         </Card>
-      )}
+      </div>
     </div>
   );
 }
-

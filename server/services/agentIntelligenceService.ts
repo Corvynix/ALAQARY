@@ -82,9 +82,10 @@ export async function getBestScriptForAgent(
   }
 
   // Match objection to response
+  let matchedObjection: { objection: string; response: string } | undefined;
   if (lead.message) {
     const message = lead.message.toLowerCase();
-    const matchedObjection = commonObjections.find((obj) =>
+    matchedObjection = commonObjections.find((obj) =>
       message.includes(obj.objection.toLowerCase())
     );
     if (matchedObjection) {
