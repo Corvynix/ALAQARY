@@ -38,10 +38,10 @@ export default function MarketSnapshot({ language, data, onTrendClick }: MarketS
   };
 
   return (
-    <section className="py-16 px-6 bg-gradient-to-b from-black via-[#0d0d0d] to-black" data-testid="section-market-snapshot">
+    <section className="py-20 px-6 bg-gradient-to-b from-black via-[#0d0d0d] to-black" data-testid="section-market-snapshot">
       <div className="max-w-7xl mx-auto">
         <h2 
-          className={`text-4xl font-bold text-center mb-12 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
+          className={`text-5xl md:text-6xl font-bold text-center mb-16 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
           data-testid="text-market-title"
         >
           {content[language].title}
@@ -64,8 +64,8 @@ export default function MarketSnapshot({ language, data, onTrendClick }: MarketS
               <CardContent>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-white/50">{content[language].avgPrice}</p>
-                    <p className="text-2xl font-bold text-white" data-testid={`text-price-${index}`}>{item.avgPrice}</p>
+                    <p className="text-sm text-muted-foreground">{content[language].avgPrice}</p>
+                    <p className="text-2xl font-bold text-foreground" data-testid={`text-price-${index}`}>{item.avgPrice}</p>
                   </div>
                   
                   <div className="flex items-center justify-between">
@@ -83,13 +83,13 @@ export default function MarketSnapshot({ language, data, onTrendClick }: MarketS
                       </span>
                     </div>
                     
-                    <span className="text-sm text-white/60">
+                    <span className="text-sm text-muted-foreground">
                       {demandLabels[language][item.demandLevel]}
                     </span>
                   </div>
                   {item.views > 0 && (
-                    <div className="pt-2 border-t border-white/10">
-                      <span className="text-xs text-white/40">
+                    <div className="pt-2 border-t border-border">
+                      <span className="text-xs text-muted-foreground/70">
                         {item.views.toLocaleString()} {content[language].views}
                       </span>
                     </div>

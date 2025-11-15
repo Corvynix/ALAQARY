@@ -82,7 +82,7 @@ export default function TrustSection({ language }: TrustSectionProps) {
     <section className="py-20 px-6 bg-gradient-to-b from-black via-[#0d0d0d] to-black border-y border-primary/10" data-testid="section-trust">
       <div className="max-w-7xl mx-auto">
         <h2 
-          className={`text-4xl font-bold text-center mb-16 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
+          className={`text-5xl md:text-6xl font-bold text-center mb-16 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
           data-testid="text-trust-title"
         >
           {content[language].title}
@@ -103,7 +103,7 @@ export default function TrustSection({ language }: TrustSectionProps) {
                 <div className="text-5xl font-bold bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text mb-2" data-testid={`stat-value-${index}`}>
                   {stat.value}{stat.suffix}
                 </div>
-                <div className={`text-sm text-white/60 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                <div className={`text-sm text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {stat.label}
                 </div>
               </div>

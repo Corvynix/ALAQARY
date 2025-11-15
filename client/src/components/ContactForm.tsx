@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Phone, MessageSquare } from "lucide-react";
+import { Mail, Phone, MessageSquare, Lock } from "lucide-react";
 import { useFunnelTracking } from "@/hooks/useFunnelTracking";
 
 interface ContactFormProps {
@@ -201,9 +201,12 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
                 {content[language].submit}
               </Button>
 
-              <p className="text-center text-sm text-muted-foreground">
-                🔒 {content[language].trustMessage}
-              </p>
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Lock className="h-4 w-4" />
+                <p className="text-center">
+                  {content[language].trustMessage}
+                </p>
+              </div>
             </form>
           </CardContent>
         </Card>
