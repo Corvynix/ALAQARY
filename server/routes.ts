@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { 
   insertPropertySchema, 
@@ -8,15 +9,110 @@ import {
   insertContentSchema,
   insertUserBehaviorSchema,
   insertAgentSchema,
-  insertTransactionSchema
+  insertTransactionSchema,
+  insertUserSchema
 } from "@shared/schema";
 import { updateLeadFunnelStage, isHighIntentClient } from "./services/funnelService";
 import { getBehavioralInsights } from "./services/behaviorAnalyzer";
 import { getMarketIntelligence, getAllMarketIntelligence } from "./services/marketIntelligenceService";
 import { recommendPropertiesForClient, recommendAgentForClient, qualifyClient } from "./services/recommendationService";
 import { getBestScriptForAgent, getAgentIntelligence } from "./services/agentIntelligenceService";
+import { requireAuth, requireRole, generateToken, type AuthRequest } from "./middleware/auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Authentication Routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, password } = insertUserSchema.parse(req.body);
+      
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "اسم المستخدم موجود بالفعل" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({
+        username,
+        password: hashedPassword
+      });
+
+      const token = generateToken(user.id, user.role);
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      res.status(201).json({
+        id: user.id,
+        username: user.username,
+        role: user.role
+      });
+    } catch (error: any) {
+      console.error("Error registering user:", error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ error: "بيانات غير صحيحة", details: error.errors });
+      }
+      res.status(500).json({ error: "فشل إنشاء الحساب" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ error: "اسم المستخدم وكلمة المرور مطلوبان" });
+      }
+
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ error: "اسم المستخدم أو كلمة المرور غير صحيحة" });
+      }
+
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        return res.status(401).json({ error: "اسم المستخدم أو كلمة المرور غير صحيحة" });
+      }
+
+      const token = generateToken(user.id, user.role);
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        role: user.role
+      });
+    } catch (error) {
+      console.error("Error logging in:", error);
+      res.status(500).json({ error: "فشل تسجيل الدخول" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    res.clearCookie("token");
+    res.json({ success: true });
+  });
+
+  app.get("/api/auth/me", requireAuth, (req, res) => {
+    const authReq = req as AuthRequest;
+    if (!authReq.user) {
+      return res.status(401).json({ error: "غير مسجل الدخول" });
+    }
+    res.json({
+      id: authReq.user.id,
+      username: authReq.user.username,
+      role: authReq.user.role
+    });
+  });
+  
+
   // Properties Routes
   app.get("/api/properties", async (req, res) => {
     try {
@@ -41,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/properties", async (req, res) => {
+  app.post("/api/properties", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const validatedData = insertPropertySchema.parse(req.body);
       const property = await storage.createProperty(validatedData);
@@ -55,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/properties/:id", async (req, res) => {
+  app.patch("/api/properties/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const property = await storage.updateProperty(req.params.id, req.body);
       if (!property) {
@@ -68,7 +164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/properties/:id", async (req, res) => {
+  app.delete("/api/properties/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const success = await storage.deleteProperty(req.params.id);
       if (!success) {
@@ -118,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/market-trends", async (req, res) => {
+  app.post("/api/market-trends", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const validatedData = insertMarketTrendSchema.parse(req.body);
       const trend = await storage.createMarketTrend(validatedData);
@@ -132,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/market-trends/:id", async (req, res) => {
+  app.patch("/api/market-trends/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const trend = await storage.updateMarketTrend(req.params.id, req.body);
       if (!trend) {
@@ -145,7 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/market-trends/:id", async (req, res) => {
+  app.delete("/api/market-trends/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const success = await storage.deleteMarketTrend(req.params.id);
       if (!success) {
@@ -159,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Leads Routes
-  app.get("/api/leads", async (req, res) => {
+  app.get("/api/leads", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const leads = await storage.getAllLeads();
       res.json(leads);
@@ -169,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/leads/:id", async (req, res) => {
+  app.get("/api/leads/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const lead = await storage.getLeadById(req.params.id);
       if (!lead) {
@@ -196,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/leads/:id", async (req, res) => {
+  app.delete("/api/leads/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const success = await storage.deleteLead(req.params.id);
       if (!success) {
@@ -239,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/content", async (req, res) => {
+  app.post("/api/content", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const validatedData = insertContentSchema.parse(req.body);
       const contentItem = await storage.createContent(validatedData);
@@ -253,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/content/:id", async (req, res) => {
+  app.patch("/api/content/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const contentItem = await storage.updateContent(req.params.id, req.body);
       if (!contentItem) {
@@ -266,7 +362,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/content/:id", async (req, res) => {
+  app.delete("/api/content/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const success = await storage.deleteContent(req.params.id);
       if (!success) {
@@ -466,8 +562,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Agent Routes
-  app.get("/api/agents", async (req, res) => {
+  // Agent Routes (Admin Only)
+  app.get("/api/agents", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const agents = await storage.getAllAgents();
       res.json(agents);
@@ -477,7 +573,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/agents/:id", async (req, res) => {
+  app.get("/api/agents/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const agent = await storage.getAgentById(req.params.id);
       if (!agent) {
@@ -490,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/agents", async (req, res) => {
+  app.post("/api/agents", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const validatedData = insertAgentSchema.parse(req.body);
       const agent = await storage.createAgent(validatedData);
@@ -504,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/agents/:id", async (req, res) => {
+  app.patch("/api/agents/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const agent = await storage.updateAgent(req.params.id, req.body);
       if (!agent) {
@@ -517,7 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/agents/:id", async (req, res) => {
+  app.delete("/api/agents/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const success = await storage.deleteAgent(req.params.id);
       if (!success) {
@@ -530,8 +626,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Transaction Routes
-  app.get("/api/transactions", async (req, res) => {
+  // Transaction Routes (Admin Only)
+  app.get("/api/transactions", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const transactions = await storage.getAllTransactions();
       res.json(transactions);
@@ -541,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/transactions/:id", async (req, res) => {
+  app.get("/api/transactions/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const transaction = await storage.getTransactionById(req.params.id);
       if (!transaction) {
@@ -554,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/transactions", async (req, res) => {
+  app.post("/api/transactions", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const validatedData = insertTransactionSchema.parse(req.body);
       const transaction = await storage.createTransaction(validatedData);
@@ -578,7 +674,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/transactions/:id", async (req, res) => {
+  app.patch("/api/transactions/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const transaction = await storage.updateTransaction(req.params.id, req.body);
       if (!transaction) {
@@ -591,7 +687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/transactions/:id", async (req, res) => {
+  app.delete("/api/transactions/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const success = await storage.deleteTransaction(req.params.id);
       if (!success) {
@@ -604,8 +700,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update lead route to handle funnel stage updates
-  app.patch("/api/leads/:id", async (req, res) => {
+  // Update lead route to handle funnel stage updates (Admin Only)
+  app.patch("/api/leads/:id", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const lead = await storage.updateLead(req.params.id, req.body);
       if (!lead) {
@@ -619,9 +715,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================================================
-  // MARKET LAYER API - Market Intelligence
+  // MARKET LAYER API - Market Intelligence (Admin Only)
   // =====================================================
-  app.get("/api/market/intelligence", async (req, res) => {
+  app.get("/api/market/intelligence", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const intelligence = await getAllMarketIntelligence();
       res.json(intelligence);
@@ -631,7 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/market/intelligence/:city", async (req, res) => {
+  app.get("/api/market/intelligence/:city", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const intelligence = await getMarketIntelligence(req.params.city);
       if (!intelligence) {
@@ -645,9 +741,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================================================
-  // AGENT LAYER API - Agent Intelligence & Scripts
+  // AGENT LAYER API - Agent Intelligence & Scripts (Admin Only)
   // =====================================================
-  app.get("/api/agents/:id/intelligence", async (req, res) => {
+  app.get("/api/agents/:id/intelligence", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const intelligence = await getAgentIntelligence(req.params.id);
       if (!intelligence) {
@@ -660,7 +756,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/agents/:agentId/script/:clientLeadId", async (req, res) => {
+  app.get("/api/agents/:agentId/script/:clientLeadId", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const script = await getBestScriptForAgent(req.params.agentId, req.params.clientLeadId);
       if (!script) {
@@ -674,9 +770,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // =====================================================
-  // CLIENT LAYER API - Client Qualification & Recommendations
+  // CLIENT LAYER API - Client Qualification & Recommendations (Admin Only)
   // =====================================================
-  app.get("/api/clients/:leadId/qualification", async (req, res) => {
+  app.get("/api/clients/:leadId/qualification", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const qualification = await qualifyClient(req.params.leadId);
       res.json(qualification);
@@ -686,7 +782,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/clients/:leadId/recommendations/properties", async (req, res) => {
+  app.get("/api/clients/:leadId/recommendations/properties", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const recommendations = await recommendPropertiesForClient(req.params.leadId);
       res.json(recommendations);
@@ -696,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/clients/:leadId/recommendations/agent", async (req, res) => {
+  app.get("/api/clients/:leadId/recommendations/agent", requireAuth, requireRole('admin'), async (req, res) => {
     try {
       const { propertyType } = req.query;
       const recommendation = await recommendAgentForClient(
