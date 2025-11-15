@@ -353,4 +353,12 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  /* Arabic-safe gold heading - uses solid color instead of transparent gradient
+   * which causes clipping issues with Arabic fonts */
+  .heading-gold {
+    color: #f4e4b5;
+    line-height: 1.2;
+    padding-bottom: 0.15em;
+  }
 }

@@ -42,139 +42,38 @@ export default function HeroSection({ language, onCTAClick }: HeroSectionProps) 
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-60" />
 
       <style>{`
-        @keyframes gradientFlow {
-          0% { 
-            background-position: 0% 50%;
-          }
-          50% { 
-            background-position: 100% 50%;
-          }
-          100% { 
-            background-position: 0% 50%;
-          }
-        }
-        
-        @keyframes shimmerWave {
-          0% { 
-            transform: translateX(-100%) translateY(0);
-            opacity: 0;
-          }
-          50% {
-            opacity: 0.8;
-          }
-          100% { 
-            transform: translateX(100%) translateY(0);
-            opacity: 0;
-          }
-        }
-        
         @keyframes pulseGlow {
           0%, 100% {
             text-shadow: 
-              0 0 20px rgba(217, 165, 67, 0.3),
-              0 0 40px rgba(217, 165, 67, 0.2),
-              0 0 60px rgba(217, 165, 67, 0.1);
+              0 0 20px rgba(217, 165, 67, 0.4),
+              0 0 40px rgba(217, 165, 67, 0.25),
+              0 0 60px rgba(217, 165, 67, 0.15);
           }
           50% {
             text-shadow: 
-              0 0 30px rgba(217, 165, 67, 0.5),
-              0 0 60px rgba(217, 165, 67, 0.3),
-              0 0 90px rgba(217, 165, 67, 0.2);
+              0 0 30px rgba(217, 165, 67, 0.6),
+              0 0 60px rgba(217, 165, 67, 0.4),
+              0 0 90px rgba(217, 165, 67, 0.25);
           }
         }
         
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .gold-shimmer {
-          background: linear-gradient(
-            120deg,
-            #d9a543 0%,
-            #f4e4b5 25%,
-            #d9a543 50%,
-            #f4e4b5 75%,
-            #d9a543 100%
-          );
-          background-size: 300% 100%;
-          animation: gradientFlow 4s ease-in-out infinite;
-          -webkit-background-clip: text;
-          background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: gradientFlow 4s ease-in-out infinite, pulseGlow 3s ease-in-out infinite;
-          position: relative;
-        }
-        
-        .gold-shimmer::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
-          background: linear-gradient(
-            90deg,
-            transparent 0%,
-            rgba(255, 255, 255, 0.6) 50%,
-            transparent 100%
-          );
-          animation: shimmerWave 3s ease-in-out infinite;
-        }
-        
-        .text-container {
-          animation: fadeInUp 1s ease-out;
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          33% { transform: translateY(-15px) rotate(2deg); }
-          66% { transform: translateY(-8px) rotate(-2deg); }
-        }
-        
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        
-        .float-animation {
-          animation: float 8s ease-in-out infinite;
-        }
-        
-        .spin-slow {
-          animation: spin 30s linear infinite;
+        .gold-glow-text {
+          color: #f4e4b5;
+          animation: pulseGlow 3s ease-in-out infinite;
+          line-height: 1.2;
+          padding-bottom: 0.15em;
         }
       `}</style>
 
-      <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-        <svg width="400" height="400" viewBox="0 0 400 400" className="float-animation">
-          <path
-            d="M200 50 L350 150 L350 300 L200 380 L50 300 L50 150 Z"
-            fill="none"
-            stroke="hsl(43, 65%, 52%)"
-            strokeWidth="2"
-            opacity="0.3"
-          />
-        </svg>
-      </div>
-
       <div className="relative z-10 max-w-6xl mx-auto px-6 text-center">
-        <div className="text-reflection mb-8" data-text={content[language].headline}>
+        <div className="mb-8">
           <h1 
-            className={`text-6xl md:text-8xl font-bold mb-2 ${
+            className={`text-6xl md:text-8xl font-bold mb-2 gold-glow-text ${
               language === 'ar' ? 'font-arabic' : 'font-serif'
             }`}
             data-testid="text-hero-headline"
           >
-            <span className="gold-shimmer bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent">
-              {content[language].headline}
-            </span>
+            {content[language].headline}
           </h1>
         </div>
         

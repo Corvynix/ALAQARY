@@ -39,7 +39,7 @@ export default function InsightsPage() {
       <main className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
           <h1 
-            className={`text-5xl font-bold text-center mb-8 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
+            className={`text-5xl font-bold text-center mb-8 heading-gold ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
           >
             {language === "ar" ? "رؤى السوق" : "Market Insights"}
           </h1>

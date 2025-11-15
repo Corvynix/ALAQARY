@@ -117,7 +117,7 @@ export default function PropertyFilters({ language, onFilterChange }: PropertyFi
 
         <div className="flex gap-2 mt-4 flex-wrap">
           <Button 
-            onClick={() => console.log('Search clicked')}
+            onClick={() => {}}
             data-testid="button-search"
           >
             <Search className="mr-2 h-4 w-4" />
@@ -125,10 +125,7 @@ export default function PropertyFilters({ language, onFilterChange }: PropertyFi
           </Button>
           <Button 
             variant="outline"
-            onClick={() => {
-              console.log('Clear filters clicked');
-              onFilterChange({});
-            }}
+            onClick={() => onFilterChange({})}
             data-testid="button-clear"
           >
             {content[language].clear}

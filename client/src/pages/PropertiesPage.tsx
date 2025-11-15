@@ -36,7 +36,7 @@ export default function PropertiesPage() {
       <main className="py-16 px-6">
         <div className="max-w-7xl mx-auto">
           <h1 
-            className={`text-5xl font-bold text-center mb-8 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
+            className={`text-5xl font-bold text-center mb-8 heading-gold ${language === 'ar' ? 'font-arabic' : 'font-serif'}`}
           >
             {language === "ar" ? "العقارات المتاحة" : "Available Properties"}
           </h1>
@@ -49,7 +49,7 @@ export default function PropertiesPage() {
 
           <PropertyFilters 
             language={language}
-            onFilterChange={(filters) => console.log('Filters:', filters)}
+            onFilterChange={(filters) => {}}
           />
 
           {isLoading ? (
@@ -71,7 +71,7 @@ export default function PropertiesPage() {
                   image={property.image}
                   status={property.status as "available" | "sold" | "reserved"}
                   language={language}
-                  onLearnMore={(id) => console.log('View property:', id)}
+                  onLearnMore={(id) => {}}
                 />
               ))}
             </div>

@@ -25,7 +25,7 @@ export default function RoiCalculatorPage() {
       
       <main className="container mx-auto px-6 py-16">
         <div className="text-center mb-12">
-          <h1 className={`text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${language === 'ar' ? 'font-arabic' : ''}`}>
+          <h1 className={`text-4xl md:text-5xl font-bold mb-4 heading-gold ${language === 'ar' ? 'font-arabic' : ''}`}>
             {t.pageTitle}
           </h1>
           <p className={`text-xl text-white/70 ${language === 'ar' ? 'font-arabic' : ''}`}>

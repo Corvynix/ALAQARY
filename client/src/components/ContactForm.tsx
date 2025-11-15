@@ -73,7 +73,6 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
       
       // Submit form (which will create lead and return leadId)
       onSubmit(formData);
-      console.log('Form submitted:', formData);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
