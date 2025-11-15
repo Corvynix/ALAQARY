@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useFunnelTracking } from "@/hooks/useFunnelTracking";
 import HeroSection from "@/components/HeroSection";
 import MarketSnapshot from "@/components/MarketSnapshot";
 import TrustSection from "@/components/TrustSection";
@@ -17,6 +18,7 @@ import type { Property, MarketTrend } from "@shared/schema";
 export default function HomePage() {
   const { language, toggleLanguage } = useLanguage();
   const { toast } = useToast();
+  const { trackTestimonialView, trackFormSubmit, sessionId } = useFunnelTracking();
 
   // Fetch properties from backend
   const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
@@ -31,10 +33,20 @@ export default function HomePage() {
   // Lead submission mutation
   const submitLeadMutation = useMutation({
     mutationFn: async (leadData: any) => {
-      const response = await apiRequest("POST", "/api/leads", leadData);
+      // Add sessionId to lead data
+      const leadWithSession = {
+        ...leadData,
+        sessionId,
+      };
+      const response = await apiRequest("POST", "/api/leads", leadWithSession);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Track form submission with leadId
+      if (data?.id) {
+        trackFormSubmit("contact_form", data.id);
+      }
+      
       toast({
         title: language === "ar" ? "تم الإرسال بنجاح!" : "Successfully Submitted!",
         description: language === "ar" 
@@ -148,7 +160,11 @@ export default function HomePage() {
           </div>
         </section>
 
-        <TestimonialCarousel language={language} testimonials={testimonials} />
+        <TestimonialCarousel 
+          language={language} 
+          testimonials={testimonials}
+          onView={() => trackTestimonialView()}
+        />
 
         <ContactForm 
           language={language}

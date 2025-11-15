@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -14,10 +14,18 @@ interface Testimonial {
 interface TestimonialCarouselProps {
   language: "ar" | "en";
   testimonials: Testimonial[];
+  onView?: () => void;
 }
 
-export default function TestimonialCarousel({ language, testimonials }: TestimonialCarouselProps) {
+export default function TestimonialCarousel({ language, testimonials, onView }: TestimonialCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    // Track when testimonials section is viewed
+    if (onView) {
+      onView();
+    }
+  }, [onView]);
 
   const content = {
     ar: {

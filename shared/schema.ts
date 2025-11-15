@@ -31,6 +31,10 @@ export const properties = pgTable("properties", {
   images: text("images").array().notNull().default(sql`ARRAY[]::text[]`),
   status: text("status").notNull().default("available"),
   views: numeric("views").notNull().default("0"),
+  realSalesRate: numeric("real_sales_rate"),
+  commonObjections: text("common_objections"),
+  closingFeatures: text("closing_features"),
+  demandIndicator: text("demand_indicator"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -51,6 +55,11 @@ export const marketTrends = pgTable("market_trends", {
   notes: text("notes"),
   notesEn: text("notes_en"),
   views: numeric("views").notNull().default("0"),
+  dailyDemand: numeric("daily_demand"),
+  weeklyDemand: numeric("weekly_demand"),
+  newProjectIndicator: text("new_project_indicator"),
+  salesVelocity: numeric("sales_velocity"),
+  brokerPerformance: text("broker_performance"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -71,6 +80,12 @@ export const leads = pgTable("leads", {
   city: text("city"),
   budget: text("budget"),
   message: text("message"),
+  funnelStage: text("funnel_stage").default("curiosity"),
+  purchaseProbability: numeric("purchase_probability").default("0"),
+  decisionType: text("decision_type"),
+  behavioralTriggers: text("behavioral_triggers"),
+  lastInteractionAt: timestamp("last_interaction_at"),
+  sessionId: text("session_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -106,3 +121,77 @@ export const roiCalculatorUsage = pgTable("roi_calculator_usage", {
   totalUsage: numeric("total_usage").notNull().default("0"),
   lastUsed: timestamp("last_used").defaultNow().notNull(),
 });
+
+export const agents = pgTable("agents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  dailyContacts: numeric("daily_contacts").default("0"),
+  closingRate: numeric("closing_rate").default("0"),
+  responseSpeed: numeric("response_speed"),
+  totalDeals: numeric("total_deals").default("0"),
+  totalRevenue: numeric("total_revenue").default("0"),
+  activeProjects: text("active_projects").array().default(sql`ARRAY[]::text[]`),
+  scripts: text("scripts"),
+  pitchEffectiveness: text("pitch_effectiveness"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAgentSchema = createInsertSchema(agents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertAgent = z.infer<typeof insertAgentSchema>;
+export type Agent = typeof agents.$inferSelect;
+
+export const userBehaviors = pgTable("user_behaviors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull(),
+  leadId: text("lead_id"),
+  behaviorType: text("behavior_type").notNull(),
+  action: text("action").notNull(),
+  target: text("target"),
+  targetId: text("target_id"),
+  metadata: text("metadata"),
+  timeSpent: numeric("time_spent"),
+  scrollDepth: numeric("scroll_depth"),
+  pageUrl: text("page_url"),
+  userAgent: text("user_agent"),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserBehaviorSchema = createInsertSchema(userBehaviors).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertUserBehavior = z.infer<typeof insertUserBehaviorSchema>;
+export type UserBehavior = typeof userBehaviors.$inferSelect;
+
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leadId: text("lead_id").notNull(),
+  propertyId: text("property_id").notNull(),
+  agentId: text("agent_id"),
+  dealValue: numeric("deal_value").notNull(),
+  commission: numeric("commission"),
+  status: text("status").default("pending"),
+  purchaseDate: timestamp("purchase_date"),
+  contractSigned: timestamp("contract_signed"),
+  paymentReceived: timestamp("payment_received"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;

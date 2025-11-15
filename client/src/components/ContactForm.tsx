@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Phone, MessageSquare } from "lucide-react";
+import { useFunnelTracking } from "@/hooks/useFunnelTracking";
 
 interface ContactFormProps {
   language: "ar" | "en";
@@ -13,6 +14,7 @@ interface ContactFormProps {
 }
 
 export default function ContactForm({ language, onSubmit }: ContactFormProps) {
+  const { trackFormInteraction, trackFormSubmit } = useFunnelTracking();
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -22,6 +24,10 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
     budget: "",
     message: ""
   });
+
+  useEffect(() => {
+    trackFormInteraction("contact_form");
+  }, [trackFormInteraction]);
 
   const content = {
     ar: {
@@ -58,10 +64,23 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
-    console.log('Form submitted:', formData);
+    
+    try {
+      // Track form submission before submitting
+      trackFormSubmit("contact_form");
+      
+      // Submit form (which will create lead and return leadId)
+      onSubmit(formData);
+      console.log('Form submitted:', formData);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
+  };
+
+  const handleFieldFocus = (fieldName: string) => {
+    trackFormInteraction("contact_form", fieldName);
   };
 
   return (
@@ -86,6 +105,7 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onFocus={() => handleFieldFocus("name")}
                   data-testid="input-name"
                 />
               </div>
@@ -102,6 +122,7 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
                     required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    onFocus={() => handleFieldFocus("phone")}
                     data-testid="input-phone"
                   />
                 </div>

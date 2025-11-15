@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@assets/stock_images/luxury_city_lights_s_621ea0db.jpg";
+import { useFunnelTracking } from "@/hooks/useFunnelTracking";
 
 interface HeroSectionProps {
   language: "ar" | "en";
@@ -7,6 +8,12 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ language, onCTAClick }: HeroSectionProps) {
+  const { trackCTAClick } = useFunnelTracking();
+
+  const handleCTAClick = () => {
+    trackCTAClick("consultation", "hero_section");
+    onCTAClick();
+  };
   const content = {
     ar: {
       headline: "حوِّل المعرفة والقرارات إلى ثروة",
@@ -139,7 +146,7 @@ export default function HeroSection({ language, onCTAClick }: HeroSectionProps) 
           <Button 
             size="lg"
             className="text-lg px-12 py-7 h-auto font-bold bg-gradient-to-r from-primary via-[#d9a543] to-primary bg-size-200 hover:bg-pos-100 transition-all duration-500 shadow-xl shadow-primary/30 border-2 border-primary/20"
-            onClick={onCTAClick}
+            onClick={handleCTAClick}
             data-testid="button-hero-cta"
             style={{
               backgroundSize: '200% 100%',

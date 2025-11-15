@@ -9,15 +9,24 @@ import {
   type InsertLead,
   type Content,
   type InsertContent,
+  type Agent,
+  type InsertAgent,
+  type UserBehavior,
+  type InsertUserBehavior,
+  type Transaction,
+  type InsertTransaction,
   users,
   properties,
   marketTrends,
   leads,
   content,
-  roiCalculatorUsage
+  roiCalculatorUsage,
+  agents,
+  userBehaviors,
+  transactions
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -62,6 +71,33 @@ export interface IStorage {
   // ROI Calculator usage tracking
   getRoiCalculatorUsage(): Promise<number>;
   incrementRoiCalculatorUsage(): Promise<number>;
+
+  // Lead enhancement methods
+  updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
+  getLeadBySessionId(sessionId: string): Promise<Lead | undefined>;
+  getLeadByPhone(phone: string): Promise<Lead | undefined>;
+
+  // Agent methods
+  getAllAgents(): Promise<Agent[]>;
+  getAgentById(id: string): Promise<Agent | undefined>;
+  createAgent(agent: InsertAgent): Promise<Agent>;
+  updateAgent(id: string, agent: Partial<InsertAgent>): Promise<Agent | undefined>;
+  deleteAgent(id: string): Promise<boolean>;
+
+  // User Behavior methods
+  createUserBehavior(behavior: InsertUserBehavior): Promise<UserBehavior>;
+  getUserBehaviorsBySessionId(sessionId: string): Promise<UserBehavior[]>;
+  getUserBehaviorsByLeadId(leadId: string): Promise<UserBehavior[]>;
+  getBehaviorsByType(behaviorType: string, limit?: number): Promise<UserBehavior[]>;
+
+  // Transaction methods
+  getAllTransactions(): Promise<Transaction[]>;
+  getTransactionById(id: string): Promise<Transaction | undefined>;
+  getTransactionsByLeadId(leadId: string): Promise<Transaction[]>;
+  getTransactionsByAgentId(agentId: string): Promise<Transaction[]>;
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined>;
+  deleteTransaction(id: string): Promise<boolean>;
 }
 
 export class DbStorage implements IStorage {
@@ -226,6 +262,98 @@ export class DbStorage implements IStorage {
       .where(eq(roiCalculatorUsage.id, result[0].id))
       .returning();
     return parseInt(updated[0].totalUsage);
+  }
+
+  // Lead enhancement methods
+  async updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined> {
+    const result = await db.update(leads).set(lead).where(eq(leads.id, id)).returning();
+    return result[0];
+  }
+
+  async getLeadBySessionId(sessionId: string): Promise<Lead | undefined> {
+    const result = await db.select().from(leads).where(eq(leads.sessionId, sessionId)).limit(1);
+    return result[0];
+  }
+
+  async getLeadByPhone(phone: string): Promise<Lead | undefined> {
+    const result = await db.select().from(leads).where(eq(leads.phone, phone)).orderBy(desc(leads.createdAt)).limit(1);
+    return result[0];
+  }
+
+  // Agent methods
+  async getAllAgents(): Promise<Agent[]> {
+    return await db.select().from(agents).orderBy(desc(agents.createdAt));
+  }
+
+  async getAgentById(id: string): Promise<Agent | undefined> {
+    const result = await db.select().from(agents).where(eq(agents.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createAgent(agent: InsertAgent): Promise<Agent> {
+    const result = await db.insert(agents).values(agent).returning();
+    return result[0];
+  }
+
+  async updateAgent(id: string, agent: Partial<InsertAgent>): Promise<Agent | undefined> {
+    const result = await db.update(agents).set({ ...agent, updatedAt: new Date() }).where(eq(agents.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteAgent(id: string): Promise<boolean> {
+    const result = await db.delete(agents).where(eq(agents.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // User Behavior methods
+  async createUserBehavior(behavior: InsertUserBehavior): Promise<UserBehavior> {
+    const result = await db.insert(userBehaviors).values(behavior).returning();
+    return result[0];
+  }
+
+  async getUserBehaviorsBySessionId(sessionId: string): Promise<UserBehavior[]> {
+    return await db.select().from(userBehaviors).where(eq(userBehaviors.sessionId, sessionId)).orderBy(desc(userBehaviors.createdAt));
+  }
+
+  async getUserBehaviorsByLeadId(leadId: string): Promise<UserBehavior[]> {
+    return await db.select().from(userBehaviors).where(eq(userBehaviors.leadId, leadId)).orderBy(desc(userBehaviors.createdAt));
+  }
+
+  async getBehaviorsByType(behaviorType: string, limit: number = 100): Promise<UserBehavior[]> {
+    return await db.select().from(userBehaviors).where(eq(userBehaviors.behaviorType, behaviorType)).orderBy(desc(userBehaviors.createdAt)).limit(limit);
+  }
+
+  // Transaction methods
+  async getAllTransactions(): Promise<Transaction[]> {
+    return await db.select().from(transactions).orderBy(desc(transactions.createdAt));
+  }
+
+  async getTransactionById(id: string): Promise<Transaction | undefined> {
+    const result = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getTransactionsByLeadId(leadId: string): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.leadId, leadId)).orderBy(desc(transactions.createdAt));
+  }
+
+  async getTransactionsByAgentId(agentId: string): Promise<Transaction[]> {
+    return await db.select().from(transactions).where(eq(transactions.agentId, agentId)).orderBy(desc(transactions.createdAt));
+  }
+
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const result = await db.insert(transactions).values(transaction).returning();
+    return result[0];
+  }
+
+  async updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined> {
+    const result = await db.update(transactions).set(transaction).where(eq(transactions.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteTransaction(id: string): Promise<boolean> {
+    const result = await db.delete(transactions).where(eq(transactions.id, id)).returning();
+    return result.length > 0;
   }
 }
 

@@ -2,6 +2,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Home, ArrowRight } from "lucide-react";
+import { useFunnelTracking } from "@/hooks/useFunnelTracking";
 
 interface PropertyCardProps {
   id: string;
@@ -30,9 +31,12 @@ export default function PropertyCard({
   language,
   onLearnMore
 }: PropertyCardProps) {
+  const { trackPropertyView } = useFunnelTracking();
+
   const handleClick = async () => {
     try {
       await fetch(`/api/views/property/${id}`, { method: "POST" });
+      trackPropertyView(id, title);
     } catch (error) {
       console.error("Error tracking property view:", error);
     }
