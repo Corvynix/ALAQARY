@@ -45,6 +45,14 @@ CREATE TABLE IF NOT EXISTS properties (
   common_objections TEXT,
   closing_features TEXT,
   demand_indicator TEXT,
+  -- New Property Layer fields
+  payment_plan TEXT, -- نظام السداد
+  cash_percentage NUMERIC, -- نسبة الكاش
+  delivery_time TEXT, -- وقت الاستلام
+  services TEXT[] DEFAULT ARRAY[]::TEXT[], -- الخدمات
+  developer TEXT, -- المطور
+  project_name TEXT, -- اسم المشروع
+  unit_number TEXT, -- رقم الشقة
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
@@ -63,9 +71,11 @@ CREATE TABLE IF NOT EXISTS market_trends (
   -- New fields for market layer
   daily_demand NUMERIC,
   weekly_demand NUMERIC,
+  monthly_demand NUMERIC,
+  supply NUMERIC, -- العرض لكل منطقة
   new_project_indicator TEXT,
   sales_velocity NUMERIC,
-  broker_performance TEXT,
+  broker_performance TEXT, -- JSON: { topBrokers: [{ name, deals, area }] }
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
@@ -128,13 +138,16 @@ CREATE TABLE IF NOT EXISTS agents (
   email TEXT,
   phone TEXT,
   daily_contacts NUMERIC DEFAULT '0',
+  interested_clients NUMERIC DEFAULT '0', -- عدد العملاء المهتمين
   closing_rate NUMERIC DEFAULT '0',
-  response_speed NUMERIC,
+  response_speed NUMERIC, -- سرعة الرد (بالدقائق)
   total_deals NUMERIC DEFAULT '0',
   total_revenue NUMERIC DEFAULT '0',
   active_projects TEXT[] DEFAULT ARRAY[]::TEXT[],
-  scripts TEXT,
-  pitch_effectiveness TEXT,
+  scripts TEXT, -- JSON: { commonObjections: [], bestResponses: [], pitchTemplates: [] }
+  pitch_effectiveness TEXT, -- JSON: { bestPitches: [{ pitch, conversionRate }] }
+  objections TEXT, -- JSON: { common: [{ objection, frequency }], responses: [] }
+  average_deal_price NUMERIC, -- الأسعار اللي بيقفل بيها
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );

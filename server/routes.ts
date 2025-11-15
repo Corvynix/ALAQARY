@@ -12,6 +12,9 @@ import {
 } from "@shared/schema";
 import { updateLeadFunnelStage, isHighIntentClient } from "./services/funnelService";
 import { getBehavioralInsights } from "./services/behaviorAnalyzer";
+import { getMarketIntelligence, getAllMarketIntelligence } from "./services/marketIntelligenceService";
+import { recommendPropertiesForClient, recommendAgentForClient, qualifyClient } from "./services/recommendationService";
+import { getBestScriptForAgent, getAgentIntelligence } from "./services/agentIntelligenceService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Properties Routes
@@ -612,6 +615,272 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating lead:", error);
       res.status(500).json({ error: "Failed to update lead" });
+    }
+  });
+
+  // =====================================================
+  // MARKET LAYER API - Market Intelligence
+  // =====================================================
+  app.get("/api/market/intelligence", async (req, res) => {
+    try {
+      const intelligence = await getAllMarketIntelligence();
+      res.json(intelligence);
+    } catch (error) {
+      console.error("Error fetching market intelligence:", error);
+      res.status(500).json({ error: "Failed to fetch market intelligence" });
+    }
+  });
+
+  app.get("/api/market/intelligence/:city", async (req, res) => {
+    try {
+      const intelligence = await getMarketIntelligence(req.params.city);
+      if (!intelligence) {
+        return res.status(404).json({ error: "Market intelligence not found for this city" });
+      }
+      res.json(intelligence);
+    } catch (error) {
+      console.error("Error fetching market intelligence:", error);
+      res.status(500).json({ error: "Failed to fetch market intelligence" });
+    }
+  });
+
+  // =====================================================
+  // AGENT LAYER API - Agent Intelligence & Scripts
+  // =====================================================
+  app.get("/api/agents/:id/intelligence", async (req, res) => {
+    try {
+      const intelligence = await getAgentIntelligence(req.params.id);
+      if (!intelligence) {
+        return res.status(404).json({ error: "Agent not found" });
+      }
+      res.json(intelligence);
+    } catch (error) {
+      console.error("Error fetching agent intelligence:", error);
+      res.status(500).json({ error: "Failed to fetch agent intelligence" });
+    }
+  });
+
+  app.get("/api/agents/:agentId/script/:clientLeadId", async (req, res) => {
+    try {
+      const script = await getBestScriptForAgent(req.params.agentId, req.params.clientLeadId);
+      if (!script) {
+        return res.status(404).json({ error: "Script recommendation not found" });
+      }
+      res.json(script);
+    } catch (error) {
+      console.error("Error fetching script recommendation:", error);
+      res.status(500).json({ error: "Failed to fetch script recommendation" });
+    }
+  });
+
+  // =====================================================
+  // CLIENT LAYER API - Client Qualification & Recommendations
+  // =====================================================
+  app.get("/api/clients/:leadId/qualification", async (req, res) => {
+    try {
+      const qualification = await qualifyClient(req.params.leadId);
+      res.json(qualification);
+    } catch (error) {
+      console.error("Error qualifying client:", error);
+      res.status(500).json({ error: "Failed to qualify client" });
+    }
+  });
+
+  app.get("/api/clients/:leadId/recommendations/properties", async (req, res) => {
+    try {
+      const recommendations = await recommendPropertiesForClient(req.params.leadId);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting property recommendations:", error);
+      res.status(500).json({ error: "Failed to get property recommendations" });
+    }
+  });
+
+  app.get("/api/clients/:leadId/recommendations/agent", async (req, res) => {
+    try {
+      const { propertyType } = req.query;
+      const recommendation = await recommendAgentForClient(
+        req.params.leadId,
+        propertyType as string
+      );
+      if (!recommendation) {
+        return res.status(404).json({ error: "No agent recommendation found" });
+      }
+      res.json(recommendation);
+    } catch (error) {
+      console.error("Error getting agent recommendation:", error);
+      res.status(500).json({ error: "Failed to get agent recommendation" });
+    }
+  });
+
+  // =====================================================
+  // PROPERTY LAYER API - Property Recommendations
+  // =====================================================
+  app.get("/api/properties/recommendations/:leadId", async (req, res) => {
+    try {
+      const recommendations = await recommendPropertiesForClient(req.params.leadId);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting property recommendations:", error);
+      res.status(500).json({ error: "Failed to get property recommendations" });
+    }
+  });
+
+  app.get("/api/properties/search", async (req, res) => {
+    try {
+      const { budget, city, propertyType, maxBudget } = req.query;
+      let properties = await storage.getAllProperties();
+
+      // Filter by budget
+      if (budget && typeof budget === "string") {
+        const budgetNum = parseFloat(budget);
+        properties = properties.filter((p) => {
+          const price = Number(p.price);
+          return price <= budgetNum * 1.1 && price >= budgetNum * 0.9; // 10% range
+        });
+      }
+
+      // Filter by max budget
+      if (maxBudget && typeof maxBudget === "string") {
+        const maxBudgetNum = parseFloat(maxBudget);
+        properties = properties.filter((p) => Number(p.price) <= maxBudgetNum);
+      }
+
+      // Filter by city
+      if (city && typeof city === "string") {
+        properties = properties.filter((p) =>
+          p.city.toLowerCase().includes(city.toLowerCase())
+        );
+      }
+
+      // Filter by property type
+      if (propertyType && typeof propertyType === "string") {
+        properties = properties.filter((p) =>
+          p.propertyType.toLowerCase().includes(propertyType.toLowerCase())
+        );
+      }
+
+      // Sort by demand indicator and real sales rate
+      properties.sort((a, b) => {
+        const aDemand = a.demandIndicator === "high" ? 1 : 0;
+        const bDemand = b.demandIndicator === "high" ? 1 : 0;
+        if (aDemand !== bDemand) return bDemand - aDemand;
+
+        const aSalesRate = Number(a.realSalesRate || 0);
+        const bSalesRate = Number(b.realSalesRate || 0);
+        return bSalesRate - aSalesRate;
+      });
+
+      res.json(properties.slice(0, 10)); // Return top 10
+    } catch (error) {
+      console.error("Error searching properties:", error);
+      res.status(500).json({ error: "Failed to search properties" });
+    }
+  });
+
+  // =====================================================
+  // BEHAVIOR LAYER API - Advanced Behavioral Insights
+  // =====================================================
+  app.get("/api/behavior/triggers", async (req, res) => {
+    try {
+      const allBehaviors = await storage.getBehaviorsByType("engagement", 1000);
+      const formSubmissions = allBehaviors.filter((b) => b.action === "submit_form");
+      const whatsappClicks = allBehaviors.filter((b) => b.action === "click_whatsapp");
+      const propertyViews = allBehaviors.filter((b) => b.action === "view_property");
+
+      // Analyze what triggers responses
+      const triggers = {
+        formSubmissions: formSubmissions.length,
+        whatsappClicks: whatsappClicks.length,
+        propertyViews: propertyViews.length,
+        averageTimeToRespond: 0,
+        peakEngagementHours: [] as Array<{ hour: number; count: number }>,
+      };
+
+      // Calculate peak hours
+      const hourStats = new Map<number, number>();
+      allBehaviors.forEach((b) => {
+        const hour = new Date(b.createdAt).getHours();
+        hourStats.set(hour, (hourStats.get(hour) || 0) + 1);
+      });
+
+      const peakHours = Array.from(hourStats.entries())
+        .map(([hour, count]) => ({ hour, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      triggers.peakEngagementHours = peakHours;
+
+      res.json(triggers);
+    } catch (error) {
+      console.error("Error analyzing behavior triggers:", error);
+      res.status(500).json({ error: "Failed to analyze behavior triggers" });
+    }
+  });
+
+  app.get("/api/behavior/peak-times", async (req, res) => {
+    try {
+      const insights = await getBehavioralInsights();
+      res.json({
+        peakEngagementTimes: insights.peakEngagementTimes,
+        averageTimeToTrust: insights.averageTimeToTrust,
+        averageTimeToPurchase: insights.averageTimeToPurchase,
+      });
+    } catch (error) {
+      console.error("Error fetching peak times:", error);
+      res.status(500).json({ error: "Failed to fetch peak times" });
+    }
+  });
+
+  app.get("/api/behavior/best-scripts", async (req, res) => {
+    try {
+      const allAgents = await storage.getAllAgents();
+      const bestScripts: Array<{
+        script: string;
+        agent: string;
+        successRate: number;
+        useCase: string;
+      }> = [];
+
+      for (const agent of allAgents) {
+        try {
+          if (agent.pitchEffectiveness) {
+            const pitches = JSON.parse(agent.pitchEffectiveness);
+            if (pitches.bestPitches) {
+              pitches.bestPitches.forEach((pitch: any) => {
+                bestScripts.push({
+                  script: pitch.pitch || "",
+                  agent: agent.name,
+                  successRate: pitch.conversionRate || Number(agent.closingRate || 0),
+                  useCase: pitch.context || "General",
+                });
+              });
+            }
+          }
+        } catch (e) {
+          // Skip invalid JSON
+        }
+      }
+
+      // Sort by success rate
+      bestScripts.sort((a, b) => b.successRate - a.successRate);
+
+      res.json(bestScripts.slice(0, 10)); // Top 10 scripts
+    } catch (error) {
+      console.error("Error fetching best scripts:", error);
+      res.status(500).json({ error: "Failed to fetch best scripts" });
+    }
+  });
+
+  app.get("/api/behavior/common-objections", async (req, res) => {
+    try {
+      const insights = await getBehavioralInsights();
+      res.json({
+        commonObjections: insights.commonObjections,
+      });
+    } catch (error) {
+      console.error("Error fetching common objections:", error);
+      res.status(500).json({ error: "Failed to fetch common objections" });
     }
   });
 

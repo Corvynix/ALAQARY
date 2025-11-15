@@ -35,6 +35,14 @@ export const properties = pgTable("properties", {
   commonObjections: text("common_objections"),
   closingFeatures: text("closing_features"),
   demandIndicator: text("demand_indicator"),
+  // New Property Layer fields
+  paymentPlan: text("payment_plan"), // نظام السداد
+  cashPercentage: numeric("cash_percentage"), // نسبة الكاش
+  deliveryTime: text("delivery_time"), // وقت الاستلام
+  services: text("services").array().default(sql`ARRAY[]::text[]`), // الخدمات
+  developer: text("developer"), // المطور
+  projectName: text("project_name"), // اسم المشروع
+  unitNumber: text("unit_number"), // رقم الشقة
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -57,9 +65,11 @@ export const marketTrends = pgTable("market_trends", {
   views: numeric("views").notNull().default("0"),
   dailyDemand: numeric("daily_demand"),
   weeklyDemand: numeric("weekly_demand"),
+  monthlyDemand: numeric("monthly_demand"),
+  supply: numeric("supply"), // العرض لكل منطقة
   newProjectIndicator: text("new_project_indicator"),
   salesVelocity: numeric("sales_velocity"),
-  brokerPerformance: text("broker_performance"),
+  brokerPerformance: text("broker_performance"), // JSON: { topBrokers: [{ name, deals, area }] }
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -128,13 +138,16 @@ export const agents = pgTable("agents", {
   email: text("email"),
   phone: text("phone"),
   dailyContacts: numeric("daily_contacts").default("0"),
+  interestedClients: numeric("interested_clients").default("0"), // عدد العملاء المهتمين
   closingRate: numeric("closing_rate").default("0"),
-  responseSpeed: numeric("response_speed"),
+  responseSpeed: numeric("response_speed"), // سرعة الرد (بالدقائق)
   totalDeals: numeric("total_deals").default("0"),
   totalRevenue: numeric("total_revenue").default("0"),
   activeProjects: text("active_projects").array().default(sql`ARRAY[]::text[]`),
-  scripts: text("scripts"),
-  pitchEffectiveness: text("pitch_effectiveness"),
+  scripts: text("scripts"), // JSON: { commonObjections: [], bestResponses: [], pitchTemplates: [] }
+  pitchEffectiveness: text("pitch_effectiveness"), // JSON: { bestPitches: [{ pitch, conversionRate }] }
+  objections: text("objections"), // JSON: { common: [{ objection, frequency }], responses: [] }
+  averageDealPrice: numeric("average_deal_price"), // الأسعار اللي بيقفل بيها
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
