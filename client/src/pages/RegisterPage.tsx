@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,23 @@ export default function RegisterPage() {
   const [role, setRole] = useState<string>("");
   const [companyName, setCompanyName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const roleParam = urlParams.get('role');
+    
+    const roleMapping: Record<string, string> = {
+      'agent': 'agent',
+      'developer': 'developer',
+      'client': 'client',
+      'contributor': 'data_contributor'
+    };
+    
+    if (roleParam && roleMapping[roleParam]) {
+      setRole(roleMapping[roleParam]);
+      setStep(2);
+    }
+  }, []);
 
   const handleNextStep = () => {
     if (step === 1) {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { 
@@ -21,6 +22,15 @@ export default function UserTypeSelector({
   onSelectUserType, 
   selectedType 
 }: UserTypeSelectorProps) {
+  const [, setLocation] = useLocation();
+  
+  const handleCardClick = (type: UserType) => {
+    onSelectUserType(type);
+    if (type) {
+      setLocation(`/register?role=${type}`);
+    }
+  };
+  
   const content = {
     ar: {
       title: "من أنت؟",
@@ -135,7 +145,7 @@ export default function UserTypeSelector({
                     ? 'border-primary bg-primary/5 shadow-xl shadow-primary/20' 
                     : 'border-border/50 bg-card/50'
                 }`}
-                onClick={() => onSelectUserType(type.id)}
+                onClick={() => handleCardClick(type.id)}
                 data-testid={`card-user-type-${type.id}`}
               >
                 <div className="flex flex-col items-center text-center gap-4">
@@ -193,23 +203,6 @@ export default function UserTypeSelector({
           })}
         </div>
 
-        {selectedType && (
-          <div className="mt-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="inline-block p-4 rounded-full bg-primary/10">
-              <svg
-                className="w-6 h-6 text-primary animate-pulse"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-              </svg>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

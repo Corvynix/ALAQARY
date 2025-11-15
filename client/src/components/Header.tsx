@@ -20,9 +20,8 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       brand: "العقاري",
       home: "الرئيسية",
       properties: "العقارات",
-      insights: "رؤى السوق",
-      blog: "المدونة",
-      roiCalculator: "حاسبة الاستثمار",
+      marketData: "بيانات السوق",
+      aiBrain: "ذكاء AI",
       marketIntelligence: "ذكاء السوق",
       behaviorInsights: "رؤى السلوك",
       dashboard: "لوحة التحكم",
@@ -35,9 +34,8 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       brand: "ALAAQARY",
       home: "Home",
       properties: "Properties",
-      insights: "Market Insights",
-      blog: "Blog",
-      roiCalculator: "Investment Calculator",
+      marketData: "Market Data",
+      aiBrain: "AI Brain",
       marketIntelligence: "Market Intelligence",
       behaviorInsights: "Behavior Insights",
       dashboard: "Dashboard",
@@ -49,20 +47,22 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
   };
 
   const publicMenuItems = [
-    { key: "home", label: content[language].home, path: "/" },
-    { key: "properties", label: content[language].properties, path: "/properties" },
-    { key: "insights", label: content[language].insights, path: "/insights" },
-    { key: "roiCalculator", label: content[language].roiCalculator, path: "/roi-calculator" },
-    { key: "blog", label: content[language].blog, path: "/blog" }
+    { key: "home", label: content[language].home, path: "/" }
   ];
+  
+  const authenticatedMenuItems = user ? [
+    { key: "properties", label: content[language].properties, path: "/properties" },
+    { key: "marketData", label: content[language].marketData, path: "/market-data" },
+    { key: "aiBrain", label: content[language].aiBrain, path: "/ai-brain" }
+  ] : [];
 
-  const adminMenuItems = [
+  const adminMenuItems = isAdmin ? [
     { key: "dashboard", label: content[language].dashboard, path: "/dashboard" },
     { key: "marketIntelligence", label: content[language].marketIntelligence, path: "/market-intelligence" },
     { key: "behaviorInsights", label: content[language].behaviorInsights, path: "/behavior-insights" }
-  ];
+  ] : [];
 
-  const menuItems = isAdmin ? [...publicMenuItems, ...adminMenuItems] : publicMenuItems;
+  const menuItems = [...publicMenuItems, ...authenticatedMenuItems, ...adminMenuItems];
 
   const handleLogout = async () => {
     await logout();

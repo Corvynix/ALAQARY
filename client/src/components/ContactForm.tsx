@@ -41,6 +41,8 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
       purposeSell: "بيع",
       purposeInvest: "استثمار",
       city: "المدينة المفضلة",
+      cityAsyut: "أسيوط",
+      cityCairo: "القاهرة",
       budget: "الميزانية التقريبية",
       message: "رسالتك",
       submit: "أرسل طلبك",
@@ -57,6 +59,8 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
       purposeSell: "Sell",
       purposeInvest: "Invest",
       city: "Preferred City",
+      cityAsyut: "Asyut",
+      cityCairo: "Cairo",
       budget: "Approximate Budget",
       message: "Your Message",
       submit: "Submit Request",
@@ -157,13 +161,16 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="city">{content[language].city}</Label>
-                  <Input
-                    id="city"
-                    value={formData.city}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    data-testid="input-city"
-                  />
+                  <Label>{content[language].city}</Label>
+                  <Select onValueChange={(value) => setFormData({ ...formData, city: value })}>
+                    <SelectTrigger data-testid="select-city">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Asyut">{content[language].cityAsyut}</SelectItem>
+                      <SelectItem value="Cairo">{content[language].cityCairo}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 

@@ -11,11 +11,6 @@ import HomePage from "@/pages/HomePage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import PropertiesPage from "@/pages/PropertiesPage";
-import InsightsPage from "@/pages/InsightsPage";
-import BlogPage from "@/pages/BlogPage";
-import AboutPage from "@/pages/AboutPage";
-import ContactPage from "@/pages/ContactPage";
-import RoiCalculatorPage from "@/pages/RoiCalculatorPage";
 import MarketIntelligencePage from "@/pages/MarketIntelligencePage";
 import AgentIntelligencePage from "@/pages/AgentIntelligencePage";
 import ClientQualificationPage from "@/pages/ClientQualificationPage";
@@ -36,14 +31,27 @@ function Router() {
       <Route path="/login" component={LoginPage} />
       <Route path="/register" component={RegisterPage} />
       
-      <Route path="/properties" component={PropertiesPage} />
-      <Route path="/insights" component={InsightsPage} />
-      <Route path="/blog" component={BlogPage} />
-      <Route path="/about" component={AboutPage} />
-      <Route path="/contact" component={ContactPage} />
-      <Route path="/roi-calculator" component={RoiCalculatorPage} />
-      <Route path="/ai-brain" component={AIBrainPage} />
-      <Route path="/market-data" component={EnhancedMarketIntelligencePage} />
+      <Route path="/properties">
+        {() => (
+          <ProtectedRoute>
+            <PropertiesPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/ai-brain">
+        {() => (
+          <ProtectedRoute>
+            <AIBrainPage />
+          </ProtectedRoute>
+        )}
+      </Route>
+      <Route path="/market-data">
+        {() => (
+          <ProtectedRoute>
+            <EnhancedMarketIntelligencePage />
+          </ProtectedRoute>
+        )}
+      </Route>
       
       <Route path="/market-intelligence">
         {() => (
