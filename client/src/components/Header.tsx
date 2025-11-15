@@ -17,7 +17,7 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
 
   const content = {
     ar: {
-      brand: "العقرى",
+      brand: "العقاري",
       home: "الرئيسية",
       properties: "العقارات",
       insights: "رؤى السوق",
@@ -32,12 +32,12 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       welcome: "مرحباً"
     },
     en: {
-      brand: "ALAQRA",
+      brand: "ALAAQARY",
       home: "Home",
       properties: "Properties",
       insights: "Market Insights",
       blog: "Blog",
-      roiCalculator: "ROI Calculator",
+      roiCalculator: "Investment Calculator",
       marketIntelligence: "Market Intelligence",
       behaviorInsights: "Behavior Insights",
       dashboard: "Dashboard",

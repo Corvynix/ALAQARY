@@ -8,11 +8,11 @@ export default function RoiCalculatorPage() {
 
   const content = {
     ar: {
-      pageTitle: "حاسبة العائد على الاستثمار",
+      pageTitle: "حاسبة الاستثمار",
       subtitle: "أداة مجانية لحساب عائد استثمارك العقاري"
     },
     en: {
-      pageTitle: "ROI Calculator",
+      pageTitle: "Investment Calculator",
       subtitle: "Free tool to calculate your real estate investment return"
     }
   };

@@ -104,9 +104,10 @@ export default function UserTypeSelector({
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-16">
           <h2 
-            className={`text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text ${
+            className={`text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-[#d9a543] via-[#f4e4b5] to-[#d9a543] text-transparent bg-clip-text no-underline decoration-none ${
               language === 'ar' ? 'font-arabic' : 'font-serif'
             }`}
+            style={{ textDecoration: 'none', WebkitTextDecoration: 'none' }}
             data-testid="text-selector-title"
           >
             {content[language].title}

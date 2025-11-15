@@ -27,8 +27,8 @@ export default function RoiCalculator({ language }: RoiCalculatorProps) {
 
   const content = {
     ar: {
-      title: "حاسبة العائد على الاستثمار",
-      description: "احسب العائد على استثمارك العقاري",
+      title: "حاسبة الاستثمار",
+      description: "احسب عائد استثمارك العقاري",
       purchasePrice: "سعر الشراء",
       monthlyRent: "الإيجار الشهري",
       annualExpenses: "المصاريف السنوية",
@@ -45,11 +45,11 @@ export default function RoiCalculator({ language }: RoiCalculatorProps) {
       loanAmount: "مبلغ القرض",
       annualLoanPayment: "الدفع السنوي للقرض",
       usageCounter: "إجمالي الاستخدامات",
-      enterValues: "أدخل القيم لحساب العائد على الاستثمار",
+      enterValues: "أدخل القيم لحساب عائد استثمارك",
       currency: "ر.س"
     },
     en: {
-      title: "ROI Calculator",
+      title: "Investment Calculator",
       description: "Calculate your real estate investment return",
       purchasePrice: "Purchase Price",
       monthlyRent: "Monthly Rent",
@@ -67,7 +67,7 @@ export default function RoiCalculator({ language }: RoiCalculatorProps) {
       loanAmount: "Loan Amount",
       annualLoanPayment: "Annual Loan Payment",
       usageCounter: "Total Usage Count",
-      enterValues: "Enter values to calculate ROI",
+      enterValues: "Enter values to calculate your investment return",
       currency: "SAR"
     }
   };
