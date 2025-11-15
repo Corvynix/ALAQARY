@@ -5,4 +5,4 @@
 [x] 5. Create authentication system (Login/Register/AuthContext/Protected Routes)
 [x] 6. Protect admin routes on backend with middleware
 [x] 7. Create database and run migrations
-[ ] 8. Update homepage to be client-focused landing page
+[x] 8. Update homepage to be client-focused landing page

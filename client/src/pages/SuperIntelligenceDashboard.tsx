@@ -10,16 +10,16 @@ import { Layers, MapPin, Users, Building2, Brain, TrendingUp } from "lucide-reac
 import MarketIntelligence from "@/components/MarketIntelligence";
 import BehaviorInsights from "@/components/BehaviorInsights";
 import FunnelAnalytics from "@/components/FunnelAnalytics";
+import { useOverviewStats, useAgentRankings } from "@/hooks/useIntelligence";
 
 export default function SuperIntelligenceDashboard() {
   const { language, toggleLanguage } = useLanguage();
 
+  const { data: overviewStats } = useOverviewStats();
+  const { data: agentRankings } = useAgentRankings();
+
   const { data: marketIntelligence } = useQuery<any[]>({
     queryKey: ["/api/market/intelligence"],
-  });
-
-  const { data: agents } = useQuery<any[]>({
-    queryKey: ["/api/agents"],
   });
 
   const { data: funnelAnalytics } = useQuery<any>({
@@ -75,10 +75,10 @@ export default function SuperIntelligenceDashboard() {
             </p>
           </div>
 
-          {/* Overview Stats */}
+          {/* Overview Stats - Using New Intelligence API */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].marketLayer}
                 </CardTitle>
@@ -86,16 +86,21 @@ export default function SuperIntelligenceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {marketIntelligence?.length || 0}
+                  {overviewStats?.stats.totalMarkets || marketIntelligence?.length || 0}
                 </div>
                 <p className={`text-xs text-muted-foreground mt-1 ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].totalCities}
                 </p>
+                {overviewStats?.stats.hotMarkets ? (
+                  <Badge variant="secondary" className="mt-2">
+                    {overviewStats.stats.hotMarkets} Hot
+                  </Badge>
+                ) : null}
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].agentLayer}
                 </CardTitle>
@@ -103,16 +108,21 @@ export default function SuperIntelligenceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {agents?.length || 0}
+                  {overviewStats?.stats.totalAgents || agentRankings?.totalAgents || 0}
                 </div>
                 <p className={`text-xs text-muted-foreground mt-1 ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].totalAgents}
                 </p>
+                {overviewStats?.stats.topAgents ? (
+                  <Badge variant="secondary" className="mt-2">
+                    {overviewStats.stats.topAgents} Elite
+                  </Badge>
+                ) : null}
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].clientLayer}
                 </CardTitle>
@@ -120,19 +130,19 @@ export default function SuperIntelligenceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {funnelAnalytics?.totalLeads || 0}
+                  {overviewStats?.stats.totalClients || funnelAnalytics?.totalLeads || 0}
                 </div>
                 <p className={`text-xs text-muted-foreground mt-1 ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].totalLeads}
                 </p>
                 <Badge variant="secondary" className="mt-2">
-                  {funnelAnalytics?.highIntentCount || 0} {content[language].activeLeads}
+                  {overviewStats?.stats.qualifiedClients || funnelAnalytics?.highIntentCount || 0} {content[language].activeLeads}
                 </Badge>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].propertyLayer}
                 </CardTitle>
@@ -140,16 +150,21 @@ export default function SuperIntelligenceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {funnelAnalytics?.totalProperties || 0}
+                  {overviewStats?.stats.totalProperties || funnelAnalytics?.totalProperties || 0}
                 </div>
                 <p className={`text-xs text-muted-foreground mt-1 ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].totalProperties}
                 </p>
+                {overviewStats?.stats.matchedProperties ? (
+                  <Badge variant="secondary" className="mt-2">
+                    {overviewStats.stats.matchedProperties} Matched
+                  </Badge>
+                ) : null}
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardHeader className="flex flex-row items-center justify-between gap-1 space-y-0 pb-2">
                 <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].behaviorLayer}
                 </CardTitle>
@@ -157,11 +172,16 @@ export default function SuperIntelligenceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {funnelAnalytics?.purchase || 0}
+                  {overviewStats?.stats.topTriggers || funnelAnalytics?.purchase || 0}
                 </div>
                 <p className={`text-xs text-muted-foreground mt-1 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  Completed
+                  Top Triggers
                 </p>
+                {overviewStats?.stats.avgClosingProbability ? (
+                  <Badge variant="secondary" className="mt-2">
+                    {(overviewStats.stats.avgClosingProbability * 100).toFixed(0)}% Avg Close
+                  </Badge>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -200,33 +220,48 @@ export default function SuperIntelligenceDashboard() {
                 <h2 className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
                   {content[language].agentLayer}
                 </h2>
-                {agents && agents.length > 0 ? (
+                {agentRankings && agentRankings.rankings.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {agents.slice(0, 10).map((agent: any) => (
-                      <Card key={agent.id}>
+                    {agentRankings.rankings.slice(0, 10).map((agent) => (
+                      <Card key={agent.agentId}>
                         <CardHeader>
-                          <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-                            {agent.name}
-                          </CardTitle>
+                          <div className="flex items-center justify-between gap-2 flex-wrap">
+                            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
+                              {agent.agentName}
+                            </CardTitle>
+                            <Badge variant={
+                              agent.tier === 'Elite' ? 'default' :
+                              agent.tier === 'High Performer' ? 'secondary' : 'outline'
+                            }>
+                              #{agent.rank} {agent.tier}
+                            </Badge>
+                          </div>
                         </CardHeader>
                         <CardContent>
                           <div className="space-y-2">
                             <div className="flex items-center justify-between">
                               <span className={`text-sm ${language === 'ar' ? 'font-arabic' : ''}`}>
+                                Overall Score
+                              </span>
+                              <Badge>{(agent.overallScore * 100).toFixed(0)}/100</Badge>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={`text-sm ${language === 'ar' ? 'font-arabic' : ''}`}>
                                 Closing Rate
                               </span>
-                              <Badge>{Number(agent.closingRate || 0)}%</Badge>
+                              <Badge>{agent.closingRate}%</Badge>
                             </div>
                             <div className="flex items-center justify-between">
                               <span className={`text-sm ${language === 'ar' ? 'font-arabic' : ''}`}>
                                 Total Deals
                               </span>
-                              <span className="font-semibold">{Number(agent.totalDeals || 0)}</span>
+                              <span className="font-semibold">{agent.totalDeals}</span>
                             </div>
                             <Button
                               variant="outline"
                               className="w-full mt-4"
-                              onClick={() => window.location.href = `/agents/${agent.id}/intelligence`}
+                              onClick={() => window.location.href = `/agents/${agent.agentId}/intelligence`}
+                              data-testid={`button-view-agent-${agent.agentId}`}
                             >
                               {content[language].viewDetails}
                             </Button>

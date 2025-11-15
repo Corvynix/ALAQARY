@@ -18,8 +18,12 @@ import { getMarketIntelligence, getAllMarketIntelligence } from "./services/mark
 import { recommendPropertiesForClient, recommendAgentForClient, qualifyClient } from "./services/recommendationService";
 import { getBestScriptForAgent, getAgentIntelligence } from "./services/agentIntelligenceService";
 import { requireAuth, requireRole, generateToken, type AuthRequest } from "./middleware/auth";
+import { intelligenceRouter } from "./intelligence/router";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Mount Intelligence API Router (admin-only analytics endpoints)
+  app.use("/api/intelligence", intelligenceRouter);
+
   // Authentication Routes
   app.post("/api/auth/register", async (req, res) => {
     try {

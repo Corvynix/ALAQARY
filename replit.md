@@ -10,6 +10,21 @@ The website targets property buyers and investors by addressing five key emotion
 
 Preferred communication style: Simple, everyday language.
 
+## Admin Access
+
+For testing admin features, an admin account has been created:
+- **Username:** admin
+- **Password:** admin123
+
+This account has access to:
+- Market Intelligence Dashboard
+- Agent Intelligence
+- Client Qualification System
+- Behavior Insights
+- Super Intelligence Dashboard
+
+**Note:** Regular visitors to the website will NOT see these admin links - they are only visible after logging in with an admin account.
+
 ## System Architecture
 
 ### Frontend Architecture

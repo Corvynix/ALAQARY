@@ -89,6 +89,7 @@ export interface IStorage {
   getUserBehaviorsBySessionId(sessionId: string): Promise<UserBehavior[]>;
   getUserBehaviorsByLeadId(leadId: string): Promise<UserBehavior[]>;
   getBehaviorsByType(behaviorType: string, limit?: number): Promise<UserBehavior[]>;
+  getAllUserBehaviors(): Promise<UserBehavior[]>;
 
   // Transaction methods
   getAllTransactions(): Promise<Transaction[]>;
@@ -98,6 +99,13 @@ export interface IStorage {
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined>;
   deleteTransaction(id: string): Promise<boolean>;
+
+  // Convenience aliases for intelligence module
+  listProperties(): Promise<Property[]>;
+  listMarketTrends(): Promise<MarketTrend[]>;
+  listLeads(): Promise<Lead[]>;
+  listAgents(): Promise<Agent[]>;
+  listUserBehaviors(): Promise<UserBehavior[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -323,6 +331,10 @@ export class DbStorage implements IStorage {
     return await db.select().from(userBehaviors).where(eq(userBehaviors.behaviorType, behaviorType)).orderBy(desc(userBehaviors.createdAt)).limit(limit);
   }
 
+  async getAllUserBehaviors(): Promise<UserBehavior[]> {
+    return await db.select().from(userBehaviors).orderBy(desc(userBehaviors.createdAt));
+  }
+
   // Transaction methods
   async getAllTransactions(): Promise<Transaction[]> {
     return await db.select().from(transactions).orderBy(desc(transactions.createdAt));
@@ -354,6 +366,27 @@ export class DbStorage implements IStorage {
   async deleteTransaction(id: string): Promise<boolean> {
     const result = await db.delete(transactions).where(eq(transactions.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Convenience aliases for intelligence module
+  async listProperties(): Promise<Property[]> {
+    return this.getAllProperties();
+  }
+
+  async listMarketTrends(): Promise<MarketTrend[]> {
+    return this.getAllMarketTrends();
+  }
+
+  async listLeads(): Promise<Lead[]> {
+    return this.getAllLeads();
+  }
+
+  async listAgents(): Promise<Agent[]> {
+    return this.getAllAgents();
+  }
+
+  async listUserBehaviors(): Promise<UserBehavior[]> {
+    return this.getAllUserBehaviors();
   }
 }
 

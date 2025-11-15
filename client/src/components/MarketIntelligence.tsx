@@ -1,8 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, TrendingDown, Minus, MapPin, DollarSign, Users, Building2, Zap } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, MapPin, DollarSign, Users, Building2, Zap, Flame } from "lucide-react";
+import { useMarketHeatmap } from "@/hooks/useIntelligence";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 interface MarketIntelligenceProps {
   city?: string;
@@ -10,13 +11,7 @@ interface MarketIntelligenceProps {
 }
 
 export default function MarketIntelligence({ city, language }: MarketIntelligenceProps) {
-  const endpoint = city
-    ? `/api/market/intelligence/${city}`
-    : "/api/market/intelligence";
-
-  const { data: intelligence, isLoading } = useQuery<any[] | any>({
-    queryKey: [endpoint],
-  });
+  const { data: heatmapData, isLoading } = useMarketHeatmap();
 
   const content = {
     ar: {
@@ -73,14 +68,15 @@ export default function MarketIntelligence({ city, language }: MarketIntelligenc
         <div className={`text-2xl font-bold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
           {content[language].title}
         </div>
-        <div className="text-muted-foreground">Loading market intelligence...</div>
+        <div className="text-muted-foreground">Loading market heatmap...</div>
       </div>
     );
   }
 
-  const intelligenceData = city ? (intelligence as any) : (intelligence as any[])?.[0];
+  const areas = heatmapData?.areas || [];
+  const filteredAreas = city ? areas.filter(a => a.city.toLowerCase() === city.toLowerCase()) : areas;
   
-  if (!intelligenceData) {
+  if (filteredAreas.length === 0) {
     return (
       <div className="p-6">
         <div className={`text-2xl font-bold mb-4 ${language === 'ar' ? 'font-arabic' : ''}`}>
@@ -91,17 +87,23 @@ export default function MarketIntelligence({ city, language }: MarketIntelligenc
     );
   }
 
-  const getTrendIcon = () => {
-    if (intelligenceData.priceTrend === "up") return <TrendingUp className="h-5 w-5 text-green-500" />;
-    if (intelligenceData.priceTrend === "down") return <TrendingDown className="h-5 w-5 text-red-500" />;
-    return <Minus className="h-5 w-5 text-gray-500" />;
+  // Prepare chart data
+  const chartData = filteredAreas.slice(0, 10).map(area => ({
+    city: area.city,
+    heatScore: area.heatScore * 100,
+    tier: area.tier,
+  }));
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'Hot': return '#d9a543'; // Gold
+      case 'Warm': return '#f4e4b5'; // Light gold
+      case 'Cool': return '#666666'; // Gray
+      default: return '#444444';
+    }
   };
 
-  const getTrendLabel = () => {
-    if (intelligenceData.priceTrend === "up") return content[language].up;
-    if (intelligenceData.priceTrend === "down") return content[language].down;
-    return content[language].stable;
-  };
+  const primaryArea = filteredAreas[0];
 
   return (
     <div className="p-6 space-y-6">
@@ -110,183 +112,117 @@ export default function MarketIntelligence({ city, language }: MarketIntelligenc
           {content[language].title}
         </h1>
         <p className={`text-muted-foreground ${language === 'ar' ? 'font-arabic' : ''}`}>
-          {content[language].subtitle} - {intelligenceData.city}
+          {content[language].subtitle} {city ? `- ${city}` : ''}
         </p>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {content[language].avgPrice}
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {(intelligenceData.avgPrice / 1000000).toFixed(1)}M EGP
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              {getTrendIcon()}
-              <span className="text-xs text-muted-foreground">{getTrendLabel()}</span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Market Heatmap Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
+            <Flame className="h-5 w-5 text-[#d9a543]" />
+            Market Heatmap - Top Markets by Heat Score
+          </CardTitle>
+          <CardDescription>
+            Heat score combines demand, supply, price trends, and velocity
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis 
+                dataKey="city" 
+                angle={-45}
+                textAnchor="end"
+                height={100}
+                stroke="#888"
+              />
+              <YAxis stroke="#888" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: '#1a1a1a',
+                  border: '1px solid #333',
+                  borderRadius: '8px',
+                }}
+              />
+              <Bar dataKey="heatScore" radius={[8, 8, 0, 0]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={getTierColor(entry.tier)} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {content[language].monthlyDemand}
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {Math.round(intelligenceData.monthlyDemand || 0)}
-            </div>
-            <div className="flex gap-2 text-xs text-muted-foreground mt-2">
-              <span>Daily: {intelligenceData.dailyDemand || 0}</span>
-              <span>•</span>
-              <span>Weekly: {intelligenceData.weeklyDemand || 0}</span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Market Areas Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {filteredAreas.map((area, index) => (
+          <Card key={index} data-testid={`card-market-${area.city}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <CardTitle className={`flex items-center gap-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
+                  <MapPin className="h-5 w-5" />
+                  {area.city}
+                </CardTitle>
+                <Badge variant={
+                  area.tier === 'Hot' ? 'default' :
+                  area.tier === 'Warm' ? 'secondary' : 'outline'
+                }>
+                  {area.tier}
+                </Badge>
+              </div>
+              <CardDescription>
+                Heat Score: {(area.heatScore * 100).toFixed(0)}/100
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Heat Score Progress */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-sm ${language === 'ar' ? 'font-arabic' : ''}`}>
+                    Market Heat
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: getTierColor(area.tier) }}>
+                    {(area.heatScore * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <Progress value={area.heatScore * 100} className="h-2" />
+              </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {content[language].supply}
-            </CardTitle>
-            <Building2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {intelligenceData.supply || 0}
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">
-              Ratio: {(intelligenceData.demandSupplyRatio || 0).toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
+              {/* Key Metrics */}
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-muted-foreground">Price Change</div>
+                  <div className={`font-semibold ${area.priceChange > 0 ? 'text-green-500' : area.priceChange < 0 ? 'text-red-500' : 'text-gray-500'}`}>
+                    {area.priceChange > 0 ? '+' : ''}{area.priceChange.toFixed(1)}%
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Velocity</div>
+                  <div className="font-semibold">{area.velocity.toFixed(1)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Demand</div>
+                  <Badge variant="outline">{area.demandLevel}</Badge>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">Supply</div>
+                  <Badge variant="outline">{area.supplyLevel}</Badge>
+                </div>
+              </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {content[language].salesVelocity}
-            </CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-              {intelligenceData.salesVelocity || 0}
-            </div>
-            <div className="text-xs text-muted-foreground mt-2">deals/month</div>
-          </CardContent>
-        </Card>
+              {/* Insights */}
+              {area.insights && (
+                <div className="text-sm text-muted-foreground">
+                  {area.insights}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      {/* Top Brokers */}
-      {intelligenceData.topBrokers && intelligenceData.topBrokers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].topBrokers}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {intelligenceData.topBrokers.slice(0, 5).map((broker: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <div className={`font-semibold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                      {broker.name}
-                    </div>
-                    <div className="text-sm text-muted-foreground">{broker.area}</div>
-                  </div>
-                  <Badge variant="outline">{broker.deals} deals</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Hot Areas */}
-      {intelligenceData.hotAreas && intelligenceData.hotAreas.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].hotAreas}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {intelligenceData.hotAreas.slice(0, 5).map((area: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className={`font-medium ${language === 'ar' ? 'font-arabic' : ''}`}>
-                      {area.area}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-muted-foreground">
-                      Demand: {area.demand}
-                    </span>
-                    {area.growth > 0 && (
-                      <Badge variant="secondary">+{area.growth}%</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Predictions */}
-      {intelligenceData.predictions && (
-        <Card>
-          <CardHeader>
-            <CardTitle className={language === 'ar' ? 'font-arabic' : ''}>
-              {content[language].predictions}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className={`text-sm font-medium mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {content[language].nextMonthPrice}
-                </div>
-                <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {(intelligenceData.predictions.nextMonthPrice / 1000000).toFixed(1)}M EGP
-                </div>
-              </div>
-              <div>
-                <div className={`text-sm font-medium mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {content[language].nextMonthDemand}
-                </div>
-                <div className={`text-2xl font-bold ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {Math.round(intelligenceData.predictions.nextMonthDemand || 0)}
-                </div>
-              </div>
-            </div>
-            {intelligenceData.predictions.trendingAreas && intelligenceData.predictions.trendingAreas.length > 0 && (
-              <div>
-                <div className={`text-sm font-medium mb-2 ${language === 'ar' ? 'font-arabic' : ''}`}>
-                  {content[language].trendingAreas}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {intelligenceData.predictions.trendingAreas.map((area: string, index: number) => (
-                    <Badge key={index} variant="outline">{area}</Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }
