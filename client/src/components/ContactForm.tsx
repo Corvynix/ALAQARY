@@ -84,7 +84,7 @@ export default function ContactForm({ language, onSubmit }: ContactFormProps) {
   };
 
   return (
-    <section className="py-20 px-6 bg-gradient-to-b from-[#0d0d0d] to-black" data-testid="section-contact">
+    <section id="contact-form" className="py-20 px-6 bg-gradient-to-b from-[#0d0d0d] to-black" data-testid="section-contact">
       <div className="max-w-2xl mx-auto">
         <Card className="bg-gradient-to-br from-black/90 to-[#0d0d0d]/90 border-primary/20">
           <CardHeader className="text-center">

@@ -20,8 +20,9 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       insights: "رؤى السوق",
       blog: "المدونة",
       roiCalculator: "حاسبة الاستثمار",
-      about: "من نحن",
-      contact: "اتصل بنا",
+      marketIntelligence: "ذكاء السوق",
+      behaviorInsights: "رؤى السلوك",
+      dashboard: "لوحة التحكم",
       cta: "استشارة مجانية"
     },
     en: {
@@ -31,8 +32,9 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
       insights: "Market Insights",
       blog: "Blog",
       roiCalculator: "ROI Calculator",
-      about: "About",
-      contact: "Contact",
+      marketIntelligence: "Market Intelligence",
+      behaviorInsights: "Behavior Insights",
+      dashboard: "Dashboard",
       cta: "Free Consultation"
     }
   };
@@ -41,10 +43,11 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
     { key: "home", label: content[language].home, path: "/" },
     { key: "properties", label: content[language].properties, path: "/properties" },
     { key: "insights", label: content[language].insights, path: "/insights" },
-    { key: "blog", label: content[language].blog, path: "/blog" },
+    { key: "marketIntelligence", label: content[language].marketIntelligence, path: "/market-intelligence" },
+    { key: "behaviorInsights", label: content[language].behaviorInsights, path: "/behavior-insights" },
+    { key: "dashboard", label: content[language].dashboard, path: "/dashboard" },
     { key: "roiCalculator", label: content[language].roiCalculator, path: "/roi-calculator" },
-    { key: "about", label: content[language].about, path: "/about" },
-    { key: "contact", label: content[language].contact, path: "/contact" }
+    { key: "blog", label: content[language].blog, path: "/blog" }
   ];
 
   return (
@@ -83,7 +86,14 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
           <Button 
             className="hidden md:inline-flex"
             data-testid="button-cta-header"
-            onClick={() => window.location.href = '/contact'}
+            onClick={() => {
+              const form = document.getElementById('contact-form');
+              if (form) {
+                form.scrollIntoView({ behavior: 'smooth' });
+              } else {
+                window.location.href = '/#contact';
+              }
+            }}
           >
             {content[language].cta}
           </Button>
@@ -121,7 +131,12 @@ export default function Header({ language, onLanguageToggle }: HeaderProps) {
               className="w-full mt-2"
               onClick={() => {
                 setMobileMenuOpen(false);
-                window.location.href = '/contact';
+                const form = document.getElementById('contact-form');
+                if (form) {
+                  form.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  window.location.href = '/#contact';
+                }
               }}
             >
               {content[language].cta}
