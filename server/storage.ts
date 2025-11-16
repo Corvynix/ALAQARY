@@ -9,6 +9,10 @@ import {
   objectionResponses,
   behavioralEvents,
   referralProgram,
+  blogCategories,
+  blogPosts,
+  blogTags,
+  blogPostTags,
   type User,
   type UpsertUser,
   type Developer,
@@ -29,9 +33,15 @@ import {
   type InsertBehavioralEvent,
   type Referral,
   type InsertReferral,
+  type BlogCategory,
+  type InsertBlogCategory,
+  type BlogPost,
+  type InsertBlogPost,
+  type BlogTag,
+  type InsertBlogTag,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql, like, or } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (Replit Auth required)
@@ -99,6 +109,23 @@ export interface IStorage {
     avgPurchaseProbability: number;
     highRiskProperties: number;
   }>;
+  
+  // Blog operations
+  getBlogCategories(): Promise<BlogCategory[]>;
+  createBlogCategory(category: InsertBlogCategory): Promise<BlogCategory>;
+  
+  getBlogPosts(filters?: { categoryId?: string; featured?: boolean; published?: boolean }): Promise<(BlogPost & { category?: BlogCategory })[]>;
+  getBlogPost(id: string): Promise<(BlogPost & { category?: BlogCategory }) | undefined>;
+  getBlogPostBySlug(slug: string): Promise<(BlogPost & { category?: BlogCategory; tags?: BlogTag[] }) | undefined>;
+  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
+  updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost>;
+  incrementBlogPostViews(id: string): Promise<void>;
+  
+  getBlogTags(): Promise<BlogTag[]>;
+  createBlogTag(tag: InsertBlogTag): Promise<BlogTag>;
+  
+  addTagToPost(postId: string, tagId: string): Promise<void>;
+  getPostTags(postId: string): Promise<BlogTag[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -383,6 +410,121 @@ export class DatabaseStorage implements IStorage {
       avgPurchaseProbability: Number(avgProb.avg) || 0,
       highRiskProperties: highRisk.length,
     };
+  }
+
+  // Blog operations
+  async getBlogCategories(): Promise<BlogCategory[]> {
+    return await db.select().from(blogCategories);
+  }
+
+  async createBlogCategory(categoryData: InsertBlogCategory): Promise<BlogCategory> {
+    const [category] = await db.insert(blogCategories).values(categoryData).returning();
+    return category;
+  }
+
+  async getBlogPosts(filters?: { categoryId?: string; featured?: boolean; published?: boolean }): Promise<(BlogPost & { category?: BlogCategory })[]> {
+    let query = db.select().from(blogPosts).leftJoin(blogCategories, eq(blogPosts.categoryId, blogCategories.id));
+    
+    const conditions = [];
+    if (filters?.categoryId) {
+      conditions.push(eq(blogPosts.categoryId, filters.categoryId));
+    }
+    if (filters?.featured !== undefined) {
+      conditions.push(eq(blogPosts.featured, filters.featured));
+    }
+    if (filters?.published !== undefined) {
+      conditions.push(eq(blogPosts.published, filters.published));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    query = query.orderBy(desc(blogPosts.publishedAt)) as any;
+    
+    const results = await query;
+    
+    return results.map(result => ({
+      ...result.blog_posts,
+      category: result.blog_categories || undefined,
+    }));
+  }
+
+  async getBlogPost(id: string): Promise<(BlogPost & { category?: BlogCategory }) | undefined> {
+    const [result] = await db
+      .select()
+      .from(blogPosts)
+      .leftJoin(blogCategories, eq(blogPosts.categoryId, blogCategories.id))
+      .where(eq(blogPosts.id, id));
+    
+    if (!result) return undefined;
+    
+    return {
+      ...result.blog_posts,
+      category: result.blog_categories || undefined,
+    };
+  }
+
+  async getBlogPostBySlug(slug: string): Promise<(BlogPost & { category?: BlogCategory; tags?: BlogTag[] }) | undefined> {
+    const [result] = await db
+      .select()
+      .from(blogPosts)
+      .leftJoin(blogCategories, eq(blogPosts.categoryId, blogCategories.id))
+      .where(eq(blogPosts.slug, slug));
+    
+    if (!result) return undefined;
+
+    const tags = await this.getPostTags(result.blog_posts.id);
+    
+    return {
+      ...result.blog_posts,
+      category: result.blog_categories || undefined,
+      tags,
+    };
+  }
+
+  async createBlogPost(postData: InsertBlogPost): Promise<BlogPost> {
+    const [post] = await db.insert(blogPosts).values(postData).returning();
+    return post;
+  }
+
+  async updateBlogPost(id: string, postData: Partial<InsertBlogPost>): Promise<BlogPost> {
+    const [post] = await db
+      .update(blogPosts)
+      .set({ ...postData, updatedAt: new Date() })
+      .where(eq(blogPosts.id, id))
+      .returning();
+    return post;
+  }
+
+  async incrementBlogPostViews(id: string): Promise<void> {
+    await db
+      .update(blogPosts)
+      .set({ views: sql`${blogPosts.views} + 1` })
+      .where(eq(blogPosts.id, id));
+  }
+
+  async getBlogTags(): Promise<BlogTag[]> {
+    return await db.select().from(blogTags);
+  }
+
+  async createBlogTag(tagData: InsertBlogTag): Promise<BlogTag> {
+    const [tag] = await db.insert(blogTags).values(tagData).returning();
+    return tag;
+  }
+
+  async addTagToPost(postId: string, tagId: string): Promise<void> {
+    await db.insert(blogPostTags).values({ postId, tagId });
+  }
+
+  async getPostTags(postId: string): Promise<BlogTag[]> {
+    const results = await db
+      .select()
+      .from(blogPostTags)
+      .leftJoin(blogTags, eq(blogPostTags.tagId, blogTags.id))
+      .where(eq(blogPostTags.postId, postId));
+    
+    return results.map(result => result.blog_tags).filter(Boolean) as BlogTag[];
   }
 }
 

@@ -13,6 +13,10 @@ import ProfileBuilder from "@/pages/ProfileBuilder";
 import BuyerDashboard from "@/pages/BuyerDashboard";
 import DeveloperDashboard from "@/pages/DeveloperDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import BlogList from "@/pages/BlogList";
+import BlogPost from "@/pages/BlogPost";
+import AdminPanel from "@/pages/AdminPanel";
+import AdminBlogEditor from "@/pages/AdminBlogEditor";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -38,10 +42,15 @@ function Router() {
           </Route>
           <Route path="/dashboard/developer" component={DeveloperDashboard} />
           <Route path="/dashboard/admin" component={AdminDashboard} />
+          <Route path="/admin" component={AdminPanel} />
         </>
       )}
       <Route path="/properties" component={PropertiesList} />
       <Route path="/properties/:id" component={PropertyDetail} />
+      <Route path="/blog" component={BlogList} />
+      <Route path="/blog/:slug" component={BlogPost} />
+      <Route path="/admin/blog/new" component={AdminBlogEditor} />
+      <Route path="/admin/blog/edit/:id" component={AdminBlogEditor} />
       <Route component={NotFound} />
     </Switch>
   );

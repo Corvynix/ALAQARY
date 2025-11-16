@@ -23,6 +23,9 @@ export default function Home() {
           
           <div className="flex items-center gap-3">
             <LanguageToggle />
+            <Button asChild variant="ghost">
+              <Link href="/blog">{t('blog')}</Link>
+            </Button>
             <Button asChild variant="ghost" data-testid="button-properties">
               <Link href="/properties">{t('properties')}</Link>
             </Button>

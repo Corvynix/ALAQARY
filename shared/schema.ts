@@ -334,6 +334,89 @@ export const insertReferralSchema = createInsertSchema(referralProgram).omit({
   createdAt: true,
 });
 
+// Blog Categories table
+export const blogCategories = pgTable("blog_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nameAr: varchar("name_ar").notNull(),
+  nameEn: varchar("name_en").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  descriptionAr: text("description_ar"),
+  descriptionEn: text("description_en"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const blogCategoriesRelations = relations(blogCategories, ({ many }) => ({
+  posts: many(blogPosts),
+}));
+
+// Blog Posts table
+export const blogPosts = pgTable("blog_posts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  titleAr: text("title_ar").notNull(),
+  titleEn: text("title_en"),
+  slug: varchar("slug").notNull().unique(),
+  excerptAr: text("excerpt_ar").notNull(),
+  excerptEn: text("excerpt_en"),
+  contentAr: text("content_ar").notNull(),
+  contentEn: text("content_en"),
+  coverImage: text("cover_image"),
+  categoryId: varchar("category_id").references(() => blogCategories.id, { onDelete: "set null" }),
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
+  views: integer("views").default(0),
+  featured: boolean("featured").default(false),
+  published: boolean("published").default(true),
+  ctaText: text("cta_text"),
+  ctaLink: text("cta_link"),
+  relatedFeature: varchar("related_feature"), // ai_closer | matching_engine | trust_score | contract_scanner | profile_builder
+  publishedAt: timestamp("published_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const blogPostsRelations = relations(blogPosts, ({ one, many }) => ({
+  category: one(blogCategories, {
+    fields: [blogPosts.categoryId],
+    references: [blogCategories.id],
+  }),
+  author: one(users, {
+    fields: [blogPosts.authorId],
+    references: [users.id],
+  }),
+  postTags: many(blogPostTags),
+}));
+
+// Blog Tags table
+export const blogTags = pgTable("blog_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  nameAr: varchar("name_ar").notNull(),
+  nameEn: varchar("name_en").notNull(),
+  slug: varchar("slug").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const blogTagsRelations = relations(blogTags, ({ many }) => ({
+  postTags: many(blogPostTags),
+}));
+
+// Blog Post Tags (many-to-many) table
+export const blogPostTags = pgTable("blog_post_tags", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  postId: varchar("post_id").references(() => blogPosts.id, { onDelete: "cascade" }),
+  tagId: varchar("tag_id").references(() => blogTags.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const blogPostTagsRelations = relations(blogPostTags, ({ one }) => ({
+  post: one(blogPosts, {
+    fields: [blogPostTags.postId],
+    references: [blogPosts.id],
+  }),
+  tag: one(blogTags, {
+    fields: [blogPostTags.tagId],
+    references: [blogTags.id],
+  }),
+}));
+
 // TypeScript types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -355,3 +438,27 @@ export type InsertBehavioralEvent = z.infer<typeof insertBehavioralEventSchema>;
 export type BehavioralEvent = typeof behavioralEvents.$inferSelect;
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referralProgram.$inferSelect;
+export type BlogCategory = typeof blogCategories.$inferSelect;
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type BlogTag = typeof blogTags.$inferSelect;
+export type BlogPostTag = typeof blogPostTags.$inferSelect;
+
+export const insertBlogCategorySchema = createInsertSchema(blogCategories).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBlogTagSchema = createInsertSchema(blogTags).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertBlogCategory = z.infer<typeof insertBlogCategorySchema>;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+export type InsertBlogTag = z.infer<typeof insertBlogTagSchema>;

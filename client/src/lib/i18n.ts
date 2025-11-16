@@ -59,6 +59,19 @@ export const translations = {
     behavioralFunnel: 'مسار السلوك',
     aiPerformance: 'أداء الذكاء الاصطناعي',
     
+    // Blog
+    blog: 'عقار ذكي',
+    blogTitle: 'عقار ذكي - دليلك الشامل للعقارات والاستثمار',
+    allPosts: 'جميع المقالات',
+    featuredPosts: 'المقالات المميزة',
+    readMore: 'اقرأ المزيد',
+    views: 'مشاهدة',
+    publishedOn: 'نُشر في',
+    category: 'الفئة',
+    tags: 'الوسوم',
+    relatedPosts: 'مقالات ذات صلة',
+    backToBlog: 'العودة للمدونة',
+    
     // Common
     save: 'حفظ',
     cancel: 'إلغاء',
@@ -126,6 +139,19 @@ export const translations = {
     developers: 'Developers',
     behavioralFunnel: 'Behavioral Funnel',
     aiPerformance: 'AI Performance',
+    
+    // Blog
+    blog: 'Smart Property',
+    blogTitle: 'Smart Property - Your Complete Real Estate & Investment Guide',
+    allPosts: 'All Posts',
+    featuredPosts: 'Featured Posts',
+    readMore: 'Read More',
+    views: 'views',
+    publishedOn: 'Published on',
+    category: 'Category',
+    tags: 'Tags',
+    relatedPosts: 'Related Posts',
+    backToBlog: 'Back to Blog',
     
     // Common
     save: 'Save',

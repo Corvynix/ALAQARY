@@ -329,6 +329,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Blog routes
+  app.get('/api/blog/categories', async (req, res) => {
+    try {
+      const categories = await storage.getBlogCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error("Error fetching blog categories:", error);
+      res.status(500).json({ message: "Failed to fetch categories" });
+    }
+  });
+
+  app.get('/api/blog/posts', async (req, res) => {
+    try {
+      const { categoryId, featured, published } = req.query;
+      const posts = await storage.getBlogPosts({
+        categoryId: categoryId as string,
+        featured: featured === 'true' ? true : featured === 'false' ? false : undefined,
+        published: published === 'true' ? true : published === 'false' ? false : undefined,
+      });
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching blog posts:", error);
+      res.status(500).json({ message: "Failed to fetch posts" });
+    }
+  });
+
+  app.get('/api/blog/posts/:slug', async (req, res) => {
+    try {
+      const post = await storage.getBlogPostBySlug(req.params.slug);
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+      
+      await storage.incrementBlogPostViews(post.id);
+      
+      res.json(post);
+    } catch (error) {
+      console.error("Error fetching blog post:", error);
+      res.status(500).json({ message: "Failed to fetch post" });
+    }
+  });
+
+  app.post('/api/blog/posts', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const post = await storage.createBlogPost({ ...req.body, authorId: userId });
+      res.json(post);
+    } catch (error: any) {
+      console.error("Error creating blog post:", error);
+      res.status(400).json({ message: error.message || "Failed to create post" });
+    }
+  });
+
+  app.patch('/api/blog/posts/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const post = await storage.updateBlogPost(req.params.id, req.body);
+      res.json(post);
+    } catch (error: any) {
+      console.error("Error updating blog post:", error);
+      res.status(400).json({ message: error.message || "Failed to update post" });
+    }
+  });
+
+  app.get('/api/blog/tags', async (req, res) => {
+    try {
+      const tags = await storage.getBlogTags();
+      res.json(tags);
+    } catch (error) {
+      console.error("Error fetching blog tags:", error);
+      res.status(500).json({ message: "Failed to fetch tags" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
