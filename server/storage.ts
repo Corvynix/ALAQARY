@@ -1,536 +1,389 @@
-import { 
-  type User, 
-  type InsertUser,
+import {
+  users,
+  developers,
+  properties,
+  contracts,
+  buyerProfiles,
+  propertyMatches,
+  aiCloserSessions,
+  objectionResponses,
+  behavioralEvents,
+  referralProgram,
+  type User,
+  type UpsertUser,
+  type Developer,
+  type InsertDeveloper,
   type Property,
   type InsertProperty,
-  type MarketTrend,
-  type InsertMarketTrend,
-  type Lead,
-  type InsertLead,
-  type Content,
-  type InsertContent,
-  type Agent,
-  type InsertAgent,
-  type UserBehavior,
-  type InsertUserBehavior,
-  type Transaction,
-  type InsertTransaction,
-  type CreditTransaction,
-  type InsertCreditTransaction,
-  type CreditScore,
-  type InsertCreditScore,
-  type DataContribution,
-  type InsertDataContribution,
-  users,
-  properties,
-  marketTrends,
-  leads,
-  content,
-  roiCalculatorUsage,
-  agents,
-  userBehaviors,
-  transactions,
-  creditTransactions,
-  creditScores,
-  dataContributions
+  type Contract,
+  type InsertContract,
+  type BuyerProfile,
+  type InsertBuyerProfile,
+  type PropertyMatch,
+  type InsertPropertyMatch,
+  type AICloserSession,
+  type InsertAICloserSession,
+  type ObjectionResponse,
+  type InsertObjectionResponse,
+  type BehavioralEvent,
+  type InsertBehavioralEvent,
+  type Referral,
+  type InsertReferral,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User methods
+  // User operations (Replit Auth required)
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, user: Partial<InsertUser & { preferences?: string; profileComplete?: string }>): Promise<User | undefined>;
-
-  // Property methods
-  getAllProperties(): Promise<Property[]>;
-  getPropertyById(id: string): Promise<Property | undefined>;
-  createProperty(property: InsertProperty): Promise<Property>;
-  updateProperty(id: string, property: Partial<InsertProperty>): Promise<Property | undefined>;
-  deleteProperty(id: string): Promise<boolean>;
-
-  // Market Trend methods
-  getAllMarketTrends(): Promise<MarketTrend[]>;
-  getMarketTrendById(id: string): Promise<MarketTrend | undefined>;
-  getMarketTrendByCity(city: string): Promise<MarketTrend | undefined>;
-  createMarketTrend(trend: InsertMarketTrend): Promise<MarketTrend>;
-  updateMarketTrend(id: string, trend: Partial<InsertMarketTrend>): Promise<MarketTrend | undefined>;
-  deleteMarketTrend(id: string): Promise<boolean>;
-
-  // Lead methods
-  getAllLeads(): Promise<Lead[]>;
-  getLeadById(id: string): Promise<Lead | undefined>;
-  createLead(lead: InsertLead): Promise<Lead>;
-  deleteLead(id: string): Promise<boolean>;
-
-  // Content methods
-  getAllContent(): Promise<Content[]>;
-  getContentById(id: string): Promise<Content | undefined>;
-  getContentByCategory(category: string): Promise<Content[]>;
-  createContent(contentItem: InsertContent): Promise<Content>;
-  updateContent(id: string, contentItem: Partial<InsertContent>): Promise<Content | undefined>;
-  deleteContent(id: string): Promise<boolean>;
-
-  // View tracking methods
-  incrementPropertyViews(id: string): Promise<void>;
-  incrementContentViews(id: string): Promise<void>;
-  incrementMarketTrendViews(id: string): Promise<void>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  getUsersByRole(role: string): Promise<User[]>;
   
-  // ROI Calculator usage tracking
-  getRoiCalculatorUsage(): Promise<number>;
-  incrementRoiCalculatorUsage(): Promise<number>;
-
-  // Lead enhancement methods
-  updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
-  getLeadBySessionId(sessionId: string): Promise<Lead | undefined>;
-  getLeadByPhone(phone: string): Promise<Lead | undefined>;
-
-  // Agent methods
-  getAllAgents(): Promise<Agent[]>;
-  getAgentById(id: string): Promise<Agent | undefined>;
-  createAgent(agent: InsertAgent): Promise<Agent>;
-  updateAgent(id: string, agent: Partial<InsertAgent>): Promise<Agent | undefined>;
-  deleteAgent(id: string): Promise<boolean>;
-
-  // User Behavior methods
-  createUserBehavior(behavior: InsertUserBehavior): Promise<UserBehavior>;
-  getUserBehaviorsBySessionId(sessionId: string): Promise<UserBehavior[]>;
-  getUserBehaviorsByLeadId(leadId: string): Promise<UserBehavior[]>;
-  getBehaviorsByType(behaviorType: string, limit?: number): Promise<UserBehavior[]>;
-  getAllUserBehaviors(): Promise<UserBehavior[]>;
-
-  // Transaction methods
-  getAllTransactions(): Promise<Transaction[]>;
-  getTransactionById(id: string): Promise<Transaction | undefined>;
-  getTransactionsByLeadId(leadId: string): Promise<Transaction[]>;
-  getTransactionsByAgentId(agentId: string): Promise<Transaction[]>;
-  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
-  updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined>;
-  deleteTransaction(id: string): Promise<boolean>;
-
-  // Convenience aliases for intelligence module
-  listProperties(): Promise<Property[]>;
-  listMarketTrends(): Promise<MarketTrend[]>;
-  listLeads(): Promise<Lead[]>;
-  listAgents(): Promise<Agent[]>;
-  listUserBehaviors(): Promise<UserBehavior[]>;
-
-  // Credit transaction methods
-  getCreditTransactions(userId: string): Promise<CreditTransaction[]>;
-  createCreditTransaction(transaction: InsertCreditTransaction): Promise<CreditTransaction>;
-  getUserCredits(userId: string): Promise<number>;
-  updateUserCredits(userId: string, amount: number): Promise<User | undefined>;
-  getAllCreditTransactions(): Promise<CreditTransaction[]>;
-
-  // Credit score methods
-  getCreditScore(entityId: string, entityType: string): Promise<CreditScore | undefined>;
-  createOrUpdateCreditScore(score: InsertCreditScore): Promise<CreditScore>;
-  getCreditScoresByType(entityType: string): Promise<CreditScore[]>;
-
-  // Data contribution methods
-  createDataContribution(contribution: InsertDataContribution): Promise<DataContribution>;
-  getDataContributions(contributorId?: string): Promise<DataContribution[]>;
-  updateDataContribution(id: string, contribution: Partial<InsertDataContribution>): Promise<DataContribution | undefined>;
+  // Developer operations
+  getDeveloper(id: string): Promise<Developer | undefined>;
+  getDeveloperByUserId(userId: string): Promise<Developer | undefined>;
+  createDeveloper(developer: InsertDeveloper): Promise<Developer>;
+  updateDeveloper(id: string, developer: Partial<InsertDeveloper>): Promise<Developer>;
+  getAllDevelopers(): Promise<Developer[]>;
+  
+  // Property operations
+  getProperty(id: string): Promise<Property | undefined>;
+  getPropertyWithDeveloper(id: string): Promise<(Property & { developer?: Developer }) | undefined>;
+  getProperties(filters?: { city?: string; type?: string; search?: string }): Promise<(Property & { developer?: Developer })[]>;
+  createProperty(property: InsertProperty): Promise<Property>;
+  updateProperty(id: string, property: Partial<InsertProperty>): Promise<Property>;
+  
+  // Contract operations
+  getContract(id: string): Promise<Contract | undefined>;
+  getContractsByDeveloperId(developerId: string): Promise<Contract[]>;
+  getContractsByBuyerId(buyerId: string): Promise<Contract[]>;
+  createContract(contract: InsertContract): Promise<Contract>;
+  updateContract(id: string, contract: Partial<InsertContract>): Promise<Contract>;
+  
+  // Buyer Profile operations
+  getBuyerProfile(id: string): Promise<BuyerProfile | undefined>;
+  getBuyerProfileByUserId(userId: string): Promise<BuyerProfile | undefined>;
+  createBuyerProfile(profile: InsertBuyerProfile): Promise<BuyerProfile>;
+  updateBuyerProfile(id: string, profile: Partial<InsertBuyerProfile>): Promise<BuyerProfile>;
+  
+  // Property Match operations
+  getPropertyMatch(id: string): Promise<PropertyMatch | undefined>;
+  getMatchesByBuyerProfileId(buyerProfileId: string): Promise<(PropertyMatch & { property?: Property & { developer?: Developer } })[]>;
+  createPropertyMatch(match: InsertPropertyMatch): Promise<PropertyMatch>;
+  updatePropertyMatch(id: string, match: Partial<InsertPropertyMatch>): Promise<PropertyMatch>;
+  
+  // AI Closer Session operations
+  getAICloserSession(id: string): Promise<AICloserSession | undefined>;
+  getSessionsByBuyerId(buyerId: string): Promise<AICloserSession[]>;
+  createAICloserSession(session: InsertAICloserSession): Promise<AICloserSession>;
+  updateAICloserSession(id: string, session: Partial<InsertAICloserSession>): Promise<AICloserSession>;
+  
+  // Objection Response operations
+  createObjectionResponse(response: InsertObjectionResponse): Promise<ObjectionResponse>;
+  getObjectionResponsesBySessionId(sessionId: string): Promise<ObjectionResponse[]>;
+  
+  // Behavioral Event operations
+  createBehavioralEvent(event: InsertBehavioralEvent): Promise<BehavioralEvent>;
+  getBehavioralEventsByUserId(userId: string): Promise<BehavioralEvent[]>;
+  
+  // Referral Program operations
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  getReferralsByUserId(userId: string): Promise<Referral[]>;
+  
+  // Admin stats
+  getAdminStats(): Promise<{
+    totalUsers: number;
+    totalDevelopers: number;
+    totalProperties: number;
+    totalSessions: number;
+    avgPurchaseProbability: number;
+    highRiskProperties: number;
+  }>;
 }
 
-export class DbStorage implements IStorage {
-  // User methods
+export class DatabaseStorage implements IStorage {
+  // User operations
   async getUser(id: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-    return result[0];
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
-    return result[0];
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const result = await db.insert(users).values(insertUser).returning();
-    return result[0];
-  }
-
-  async updateUser(id: string, user: Partial<InsertUser & { preferences?: string; profileComplete?: string }>): Promise<User | undefined> {
-    const result = await db.update(users)
-      .set({ ...user, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
-    return result[0];
-  }
-
-  // Property methods
-  async getAllProperties(): Promise<Property[]> {
-    return await db.select().from(properties).orderBy(desc(properties.createdAt));
-  }
-
-  async getPropertyById(id: string): Promise<Property | undefined> {
-    const result = await db.select().from(properties).where(eq(properties.id, id)).limit(1);
-    return result[0];
-  }
-
-  async createProperty(property: InsertProperty): Promise<Property> {
-    const result = await db.insert(properties).values(property).returning();
-    return result[0];
-  }
-
-  async updateProperty(id: string, property: Partial<InsertProperty>): Promise<Property | undefined> {
-    const result = await db.update(properties).set(property).where(eq(properties.id, id)).returning();
-    return result[0];
-  }
-
-  async deleteProperty(id: string): Promise<boolean> {
-    const result = await db.delete(properties).where(eq(properties.id, id)).returning();
-    return result.length > 0;
-  }
-
-  // Market Trend methods
-  async getAllMarketTrends(): Promise<MarketTrend[]> {
-    return await db.select().from(marketTrends).orderBy(desc(marketTrends.updatedAt));
-  }
-
-  async getMarketTrendById(id: string): Promise<MarketTrend | undefined> {
-    const result = await db.select().from(marketTrends).where(eq(marketTrends.id, id)).limit(1);
-    return result[0];
-  }
-
-  async getMarketTrendByCity(city: string): Promise<MarketTrend | undefined> {
-    const result = await db.select().from(marketTrends).where(eq(marketTrends.city, city)).limit(1);
-    return result[0];
-  }
-
-  async createMarketTrend(trend: InsertMarketTrend): Promise<MarketTrend> {
-    const result = await db.insert(marketTrends).values(trend).returning();
-    return result[0];
-  }
-
-  async updateMarketTrend(id: string, trend: Partial<InsertMarketTrend>): Promise<MarketTrend | undefined> {
-    const result = await db.update(marketTrends).set({ ...trend, updatedAt: new Date() }).where(eq(marketTrends.id, id)).returning();
-    return result[0];
-  }
-
-  async deleteMarketTrend(id: string): Promise<boolean> {
-    const result = await db.delete(marketTrends).where(eq(marketTrends.id, id)).returning();
-    return result.length > 0;
-  }
-
-  // Lead methods
-  async getAllLeads(): Promise<Lead[]> {
-    return await db.select().from(leads).orderBy(desc(leads.createdAt));
-  }
-
-  async getLeadById(id: string): Promise<Lead | undefined> {
-    const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
-    return result[0];
-  }
-
-  async createLead(lead: InsertLead): Promise<Lead> {
-    const result = await db.insert(leads).values(lead).returning();
-    return result[0];
-  }
-
-  async deleteLead(id: string): Promise<boolean> {
-    const result = await db.delete(leads).where(eq(leads.id, id)).returning();
-    return result.length > 0;
-  }
-
-  // Content methods
-  async getAllContent(): Promise<Content[]> {
-    return await db.select().from(content).orderBy(desc(content.createdAt));
-  }
-
-  async getContentById(id: string): Promise<Content | undefined> {
-    const result = await db.select().from(content).where(eq(content.id, id)).limit(1);
-    return result[0];
-  }
-
-  async getContentByCategory(category: string): Promise<Content[]> {
-    return await db.select().from(content).where(eq(content.category, category)).orderBy(desc(content.createdAt));
-  }
-
-  async createContent(contentItem: InsertContent): Promise<Content> {
-    const result = await db.insert(content).values(contentItem).returning();
-    return result[0];
-  }
-
-  async updateContent(id: string, contentItem: Partial<InsertContent>): Promise<Content | undefined> {
-    const result = await db.update(content).set(contentItem).where(eq(content.id, id)).returning();
-    return result[0];
-  }
-
-  async deleteContent(id: string): Promise<boolean> {
-    const result = await db.delete(content).where(eq(content.id, id)).returning();
-    return result.length > 0;
-  }
-
-  async incrementPropertyViews(id: string): Promise<void> {
-    await db.update(properties)
-      .set({ views: sql`${properties.views} + 1` })
-      .where(eq(properties.id, id));
-  }
-
-  async incrementContentViews(id: string): Promise<void> {
-    await db.update(content)
-      .set({ views: sql`${content.views} + 1` })
-      .where(eq(content.id, id));
-  }
-
-  async incrementMarketTrendViews(id: string): Promise<void> {
-    await db.update(marketTrends)
-      .set({ views: sql`${marketTrends.views} + 1` })
-      .where(eq(marketTrends.id, id));
-  }
-
-  async getRoiCalculatorUsage(): Promise<number> {
-    const result = await db.select().from(roiCalculatorUsage).limit(1);
-    if (result.length === 0) {
-      const newRecord = await db.insert(roiCalculatorUsage).values({ totalUsage: "0" }).returning();
-      return parseInt(newRecord[0].totalUsage);
-    }
-    return parseInt(result[0].totalUsage);
-  }
-
-  async incrementRoiCalculatorUsage(): Promise<number> {
-    const result = await db.select().from(roiCalculatorUsage).limit(1);
-    if (result.length === 0) {
-      const newRecord = await db.insert(roiCalculatorUsage).values({ totalUsage: "1" }).returning();
-      return parseInt(newRecord[0].totalUsage);
-    }
-    const updated = await db.update(roiCalculatorUsage)
-      .set({ 
-        totalUsage: sql`${roiCalculatorUsage.totalUsage} + 1`,
-        lastUsed: new Date()
-      })
-      .where(eq(roiCalculatorUsage.id, result[0].id))
-      .returning();
-    return parseInt(updated[0].totalUsage);
-  }
-
-  // Lead enhancement methods
-  async updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined> {
-    const result = await db.update(leads).set(lead).where(eq(leads.id, id)).returning();
-    return result[0];
-  }
-
-  async getLeadBySessionId(sessionId: string): Promise<Lead | undefined> {
-    const result = await db.select().from(leads).where(eq(leads.sessionId, sessionId)).limit(1);
-    return result[0];
-  }
-
-  async getLeadByPhone(phone: string): Promise<Lead | undefined> {
-    const result = await db.select().from(leads).where(eq(leads.phone, phone)).orderBy(desc(leads.createdAt)).limit(1);
-    return result[0];
-  }
-
-  // Agent methods
-  async getAllAgents(): Promise<Agent[]> {
-    return await db.select().from(agents).orderBy(desc(agents.createdAt));
-  }
-
-  async getAgentById(id: string): Promise<Agent | undefined> {
-    const result = await db.select().from(agents).where(eq(agents.id, id)).limit(1);
-    return result[0];
-  }
-
-  async createAgent(agent: InsertAgent): Promise<Agent> {
-    const result = await db.insert(agents).values(agent).returning();
-    return result[0];
-  }
-
-  async updateAgent(id: string, agent: Partial<InsertAgent>): Promise<Agent | undefined> {
-    const result = await db.update(agents).set({ ...agent, updatedAt: new Date() }).where(eq(agents.id, id)).returning();
-    return result[0];
-  }
-
-  async deleteAgent(id: string): Promise<boolean> {
-    const result = await db.delete(agents).where(eq(agents.id, id)).returning();
-    return result.length > 0;
-  }
-
-  // User Behavior methods
-  async createUserBehavior(behavior: InsertUserBehavior): Promise<UserBehavior> {
-    const result = await db.insert(userBehaviors).values(behavior).returning();
-    return result[0];
-  }
-
-  async getUserBehaviorsBySessionId(sessionId: string): Promise<UserBehavior[]> {
-    return await db.select().from(userBehaviors).where(eq(userBehaviors.sessionId, sessionId)).orderBy(desc(userBehaviors.createdAt));
-  }
-
-  async getUserBehaviorsByLeadId(leadId: string): Promise<UserBehavior[]> {
-    return await db.select().from(userBehaviors).where(eq(userBehaviors.leadId, leadId)).orderBy(desc(userBehaviors.createdAt));
-  }
-
-  async getBehaviorsByType(behaviorType: string, limit: number = 100): Promise<UserBehavior[]> {
-    return await db.select().from(userBehaviors).where(eq(userBehaviors.behaviorType, behaviorType)).orderBy(desc(userBehaviors.createdAt)).limit(limit);
-  }
-
-  async getAllUserBehaviors(): Promise<UserBehavior[]> {
-    return await db.select().from(userBehaviors).orderBy(desc(userBehaviors.createdAt));
-  }
-
-  // Transaction methods
-  async getAllTransactions(): Promise<Transaction[]> {
-    return await db.select().from(transactions).orderBy(desc(transactions.createdAt));
-  }
-
-  async getTransactionById(id: string): Promise<Transaction | undefined> {
-    const result = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
-    return result[0];
-  }
-
-  async getTransactionsByLeadId(leadId: string): Promise<Transaction[]> {
-    return await db.select().from(transactions).where(eq(transactions.leadId, leadId)).orderBy(desc(transactions.createdAt));
-  }
-
-  async getTransactionsByAgentId(agentId: string): Promise<Transaction[]> {
-    return await db.select().from(transactions).where(eq(transactions.agentId, agentId)).orderBy(desc(transactions.createdAt));
-  }
-
-  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
-    const result = await db.insert(transactions).values(transaction).returning();
-    return result[0];
-  }
-
-  async updateTransaction(id: string, transaction: Partial<InsertTransaction>): Promise<Transaction | undefined> {
-    const result = await db.update(transactions).set(transaction).where(eq(transactions.id, id)).returning();
-    return result[0];
-  }
-
-  async deleteTransaction(id: string): Promise<boolean> {
-    const result = await db.delete(transactions).where(eq(transactions.id, id)).returning();
-    return result.length > 0;
-  }
-
-  // Convenience aliases for intelligence module
-  async listProperties(): Promise<Property[]> {
-    return this.getAllProperties();
-  }
-
-  async listMarketTrends(): Promise<MarketTrend[]> {
-    return this.getAllMarketTrends();
-  }
-
-  async listLeads(): Promise<Lead[]> {
-    return this.getAllLeads();
-  }
-
-  async listAgents(): Promise<Agent[]> {
-    return this.getAllAgents();
-  }
-
-  async listUserBehaviors(): Promise<UserBehavior[]> {
-    return this.getAllUserBehaviors();
-  }
-
-  // Credit transaction methods
-  async getCreditTransactions(userId: string): Promise<CreditTransaction[]> {
-    return await db.select().from(creditTransactions)
-      .where(eq(creditTransactions.userId, userId))
-      .orderBy(desc(creditTransactions.createdAt));
-  }
-
-  async createCreditTransaction(transaction: InsertCreditTransaction): Promise<CreditTransaction> {
-    const result = await db.insert(creditTransactions).values(transaction).returning();
-    return result[0];
-  }
-
-  async getUserCredits(userId: string): Promise<number> {
-    const user = await this.getUser(userId);
-    if (!user || !user.credits) {
-      return 0;
-    }
-    return parseFloat(user.credits);
-  }
-
-  async updateUserCredits(userId: string, amount: number): Promise<User | undefined> {
-    const user = await this.getUser(userId);
-    if (!user) {
-      return undefined;
-    }
-    const currentCredits = parseFloat(user.credits || "0");
-    const newCredits = Math.max(0, currentCredits + amount); // Prevent negative credits
-    
-    const result = await db.update(users)
-      .set({ credits: newCredits.toString() })
-      .where(eq(users.id, userId))
-      .returning();
-    return result[0];
-  }
-
-  async getAllCreditTransactions(): Promise<CreditTransaction[]> {
-    return await db.select().from(creditTransactions)
-      .orderBy(desc(creditTransactions.createdAt));
-  }
-
-  // Credit score methods
-  async getCreditScore(entityId: string, entityType: string): Promise<CreditScore | undefined> {
-    const result = await db.select()
-      .from(creditScores)
-      .where(and(
-        eq(creditScores.entityId, entityId),
-        eq(creditScores.entityType, entityType)
-      ))
-      .limit(1);
-    return result[0];
-  }
-
-  async createOrUpdateCreditScore(score: InsertCreditScore): Promise<CreditScore> {
-    const existing = await this.getCreditScore(score.entityId, score.entityType);
-    
-    if (existing) {
-      const result = await db.update(creditScores)
-        .set({
-          ...score,
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
           updatedAt: new Date(),
-          lastCalculated: new Date(),
-        })
-        .where(eq(creditScores.id, existing.id))
-        .returning();
-      return result[0];
-    } else {
-      const result = await db.insert(creditScores)
-        .values(score)
-        .returning();
-      return result[0];
-    }
-  }
-
-  async getCreditScoresByType(entityType: string): Promise<CreditScore[]> {
-    return await db.select()
-      .from(creditScores)
-      .where(eq(creditScores.entityType, entityType))
-      .orderBy(desc(creditScores.score));
-  }
-
-  // Data contribution methods
-  async createDataContribution(contribution: InsertDataContribution): Promise<DataContribution> {
-    const result = await db.insert(dataContributions)
-      .values(contribution)
+        },
+      })
       .returning();
-    return result[0];
+    return user;
   }
 
-  async getDataContributions(contributorId?: string): Promise<DataContribution[]> {
-    if (contributorId) {
-      return await db.select()
-        .from(dataContributions)
-        .where(eq(dataContributions.contributorId, contributorId))
-        .orderBy(desc(dataContributions.createdAt));
-    }
-    return await db.select()
-      .from(dataContributions)
-      .orderBy(desc(dataContributions.createdAt));
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, role));
   }
 
-  async updateDataContribution(id: string, contribution: Partial<InsertDataContribution>): Promise<DataContribution | undefined> {
-    const result = await db.update(dataContributions)
-      .set(contribution)
-      .where(eq(dataContributions.id, id))
+  // Developer operations
+  async getDeveloper(id: string): Promise<Developer | undefined> {
+    const [developer] = await db.select().from(developers).where(eq(developers.id, id));
+    return developer;
+  }
+
+  async getDeveloperByUserId(userId: string): Promise<Developer | undefined> {
+    const [developer] = await db.select().from(developers).where(eq(developers.userId, userId));
+    return developer;
+  }
+
+  async createDeveloper(developerData: InsertDeveloper): Promise<Developer> {
+    const [developer] = await db.insert(developers).values(developerData).returning();
+    return developer;
+  }
+
+  async updateDeveloper(id: string, developerData: Partial<InsertDeveloper>): Promise<Developer> {
+    const [developer] = await db
+      .update(developers)
+      .set({ ...developerData, updatedAt: new Date() })
+      .where(eq(developers.id, id))
       .returning();
-    return result[0];
+    return developer;
+  }
+
+  async getAllDevelopers(): Promise<Developer[]> {
+    return await db.select().from(developers);
+  }
+
+  // Property operations
+  async getProperty(id: string): Promise<Property | undefined> {
+    const [property] = await db.select().from(properties).where(eq(properties.id, id));
+    return property;
+  }
+
+  async getPropertyWithDeveloper(id: string): Promise<(Property & { developer?: Developer }) | undefined> {
+    const [result] = await db
+      .select()
+      .from(properties)
+      .leftJoin(developers, eq(properties.developerId, developers.id))
+      .where(eq(properties.id, id));
+    
+    if (!result) return undefined;
+    
+    return {
+      ...result.properties,
+      developer: result.developers || undefined,
+    };
+  }
+
+  async getProperties(filters?: { city?: string; type?: string; search?: string }): Promise<(Property & { developer?: Developer })[]> {
+    let query = db.select().from(properties).leftJoin(developers, eq(properties.developerId, developers.id));
+    
+    const conditions = [];
+    if (filters?.city && filters.city !== 'all') {
+      conditions.push(eq(properties.city, filters.city));
+    }
+    if (filters?.type && filters.type !== 'all') {
+      conditions.push(eq(properties.type, filters.type));
+    }
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions)) as any;
+    }
+    
+    const results = await query;
+    
+    return results.map(result => ({
+      ...result.properties,
+      developer: result.developers || undefined,
+    }));
+  }
+
+  async createProperty(propertyData: InsertProperty): Promise<Property> {
+    const [property] = await db.insert(properties).values(propertyData).returning();
+    return property;
+  }
+
+  async updateProperty(id: string, propertyData: Partial<InsertProperty>): Promise<Property> {
+    const [property] = await db
+      .update(properties)
+      .set({ ...propertyData, updatedAt: new Date() })
+      .where(eq(properties.id, id))
+      .returning();
+    return property;
+  }
+
+  // Contract operations
+  async getContract(id: string): Promise<Contract | undefined> {
+    const [contract] = await db.select().from(contracts).where(eq(contracts.id, id));
+    return contract;
+  }
+
+  async getContractsByDeveloperId(developerId: string): Promise<Contract[]> {
+    return await db.select().from(contracts).where(eq(contracts.developerId, developerId));
+  }
+
+  async getContractsByBuyerId(buyerId: string): Promise<Contract[]> {
+    return await db.select().from(contracts).where(eq(contracts.buyerId, buyerId));
+  }
+
+  async createContract(contractData: InsertContract): Promise<Contract> {
+    const [contract] = await db.insert(contracts).values(contractData).returning();
+    return contract;
+  }
+
+  async updateContract(id: string, contractData: Partial<InsertContract>): Promise<Contract> {
+    const [contract] = await db
+      .update(contracts)
+      .set({ ...contractData, updatedAt: new Date() })
+      .where(eq(contracts.id, id))
+      .returning();
+    return contract;
+  }
+
+  // Buyer Profile operations
+  async getBuyerProfile(id: string): Promise<BuyerProfile | undefined> {
+    const [profile] = await db.select().from(buyerProfiles).where(eq(buyerProfiles.id, id));
+    return profile;
+  }
+
+  async getBuyerProfileByUserId(userId: string): Promise<BuyerProfile | undefined> {
+    const [profile] = await db.select().from(buyerProfiles).where(eq(buyerProfiles.userId, userId));
+    return profile;
+  }
+
+  async createBuyerProfile(profileData: InsertBuyerProfile): Promise<BuyerProfile> {
+    const [profile] = await db.insert(buyerProfiles).values(profileData).returning();
+    return profile;
+  }
+
+  async updateBuyerProfile(id: string, profileData: Partial<InsertBuyerProfile>): Promise<BuyerProfile> {
+    const [profile] = await db
+      .update(buyerProfiles)
+      .set({ ...profileData, updatedAt: new Date() })
+      .where(eq(buyerProfiles.id, id))
+      .returning();
+    return profile;
+  }
+
+  // Property Match operations
+  async getPropertyMatch(id: string): Promise<PropertyMatch | undefined> {
+    const [match] = await db.select().from(propertyMatches).where(eq(propertyMatches.id, id));
+    return match;
+  }
+
+  async getMatchesByBuyerProfileId(buyerProfileId: string): Promise<(PropertyMatch & { property?: Property & { developer?: Developer } })[]> {
+    const results = await db
+      .select()
+      .from(propertyMatches)
+      .leftJoin(properties, eq(propertyMatches.propertyId, properties.id))
+      .leftJoin(developers, eq(properties.developerId, developers.id))
+      .where(eq(propertyMatches.buyerProfileId, buyerProfileId))
+      .orderBy(desc(propertyMatches.matchScore));
+    
+    return results.map(result => ({
+      ...result.property_matches,
+      property: result.properties ? {
+        ...result.properties,
+        developer: result.developers || undefined,
+      } : undefined,
+    }));
+  }
+
+  async createPropertyMatch(matchData: InsertPropertyMatch): Promise<PropertyMatch> {
+    const [match] = await db.insert(propertyMatches).values(matchData).returning();
+    return match;
+  }
+
+  async updatePropertyMatch(id: string, matchData: Partial<InsertPropertyMatch>): Promise<PropertyMatch> {
+    const [match] = await db
+      .update(propertyMatches)
+      .set(matchData)
+      .where(eq(propertyMatches.id, id))
+      .returning();
+    return match;
+  }
+
+  // AI Closer Session operations
+  async getAICloserSession(id: string): Promise<AICloserSession | undefined> {
+    const [session] = await db.select().from(aiCloserSessions).where(eq(aiCloserSessions.id, id));
+    return session;
+  }
+
+  async getSessionsByBuyerId(buyerId: string): Promise<AICloserSession[]> {
+    return await db.select().from(aiCloserSessions).where(eq(aiCloserSessions.buyerId, buyerId));
+  }
+
+  async createAICloserSession(sessionData: InsertAICloserSession): Promise<AICloserSession> {
+    const [session] = await db.insert(aiCloserSessions).values(sessionData).returning();
+    return session;
+  }
+
+  async updateAICloserSession(id: string, sessionData: Partial<InsertAICloserSession>): Promise<AICloserSession> {
+    const [session] = await db
+      .update(aiCloserSessions)
+      .set({ ...sessionData, updatedAt: new Date() })
+      .where(eq(aiCloserSessions.id, id))
+      .returning();
+    return session;
+  }
+
+  // Objection Response operations
+  async createObjectionResponse(responseData: InsertObjectionResponse): Promise<ObjectionResponse> {
+    const [response] = await db.insert(objectionResponses).values(responseData).returning();
+    return response;
+  }
+
+  async getObjectionResponsesBySessionId(sessionId: string): Promise<ObjectionResponse[]> {
+    return await db.select().from(objectionResponses).where(eq(objectionResponses.sessionId, sessionId));
+  }
+
+  // Behavioral Event operations
+  async createBehavioralEvent(eventData: InsertBehavioralEvent): Promise<BehavioralEvent> {
+    const [event] = await db.insert(behavioralEvents).values(eventData).returning();
+    return event;
+  }
+
+  async getBehavioralEventsByUserId(userId: string): Promise<BehavioralEvent[]> {
+    return await db.select().from(behavioralEvents).where(eq(behavioralEvents.userId, userId));
+  }
+
+  // Referral Program operations
+  async createReferral(referralData: InsertReferral): Promise<Referral> {
+    const [referral] = await db.insert(referralProgram).values(referralData).returning();
+    return referral;
+  }
+
+  async getReferralsByUserId(userId: string): Promise<Referral[]> {
+    return await db.select().from(referralProgram).where(eq(referralProgram.userId, userId));
+  }
+
+  // Admin stats
+  async getAdminStats(): Promise<{
+    totalUsers: number;
+    totalDevelopers: number;
+    totalProperties: number;
+    totalSessions: number;
+    avgPurchaseProbability: number;
+    highRiskProperties: number;
+  }> {
+    const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
+    const [developerCount] = await db.select({ count: sql<number>`count(*)` }).from(developers);
+    const [propertyCount] = await db.select({ count: sql<number>`count(*)` }).from(properties);
+    const [sessionCount] = await db.select({ count: sql<number>`count(*)` }).from(aiCloserSessions);
+    const [avgProb] = await db.select({ avg: sql<number>`avg(purchase_probability)` }).from(aiCloserSessions);
+    const highRisk = await db.select().from(properties).where(sql`cardinality(risk_indicators) > 0`);
+
+    return {
+      totalUsers: Number(userCount.count) || 0,
+      totalDevelopers: Number(developerCount.count) || 0,
+      totalProperties: Number(propertyCount.count) || 0,
+      totalSessions: Number(sessionCount.count) || 0,
+      avgPurchaseProbability: Number(avgProb.avg) || 0,
+      highRiskProperties: highRisk.length,
+    };
   }
 }
 
-export const storage = new DbStorage();
+export const storage = new DatabaseStorage();

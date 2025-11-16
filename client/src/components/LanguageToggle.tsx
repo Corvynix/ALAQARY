@@ -1,22 +1,26 @@
-import { Button } from "@/components/ui/button";
-import { Globe } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Globe } from 'lucide-react';
 
-interface LanguageToggleProps {
-  language: "ar" | "en";
-  onToggle: () => void;
-}
+export function LanguageToggle() {
+  const { language, setLanguage } = useLanguage();
 
-export default function LanguageToggle({ language, onToggle }: LanguageToggleProps) {
+  const toggleLanguage = () => {
+    setLanguage(language === 'ar' ? 'en' : 'ar');
+  };
+
   return (
     <Button
-      variant="outline"
-      size="sm"
-      onClick={onToggle}
-      className="gap-2"
+      variant="ghost"
+      size="icon"
+      onClick={toggleLanguage}
       data-testid="button-language-toggle"
+      className="relative"
     >
-      <Globe className="h-4 w-4" />
-      <span>{language === "ar" ? "EN" : "عربي"}</span>
+      <Globe className="w-5 h-5" />
+      <span className="absolute bottom-0 end-0 text-[10px] font-bold">
+        {language === 'ar' ? 'EN' : 'ع'}
+      </span>
     </Button>
   );
 }

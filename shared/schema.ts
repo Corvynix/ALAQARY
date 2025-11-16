@@ -1,341 +1,357 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, numeric, timestamp } from "drizzle-orm/pg-core";
+import { sql } from 'drizzle-orm';
+import {
+  index,
+  jsonb,
+  pgTable,
+  timestamp,
+  varchar,
+  text,
+  integer,
+  real,
+  boolean,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table (required for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table (required for Replit Auth)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  email: text("email"),
-  phone: text("phone"),
-  role: text("role").notNull().default("client"),
-  fullName: text("full_name"),
-  companyName: text("company_name"),
-  credits: numeric("credits").default("0"),
-  accuracyScore: numeric("accuracy_score").default("0"),
-  profileComplete: text("profile_complete").default("false"),
-  preferences: text("preferences"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: varchar("role").notNull().default("buyer"), // buyer | developer | admin
+  credits: integer("credits").default(0),
+  referralCode: varchar("referral_code").unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  email: true,
-  phone: true,
-  role: true,
-  fullName: true,
-  companyName: true,
+export const usersRelations = relations(users, ({ one, many }) => ({
+  buyerProfile: one(buyerProfiles, {
+    fields: [users.id],
+    references: [buyerProfiles.userId],
+  }),
+  developer: one(developers, {
+    fields: [users.id],
+    references: [developers.userId],
+  }),
+  behavioralEvents: many(behavioralEvents),
+  aiCloserSessions: many(aiCloserSessions),
+  referrals: many(referralProgram),
+}));
+
+// Developers table
+export const developers = pgTable("developers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  companyName: varchar("company_name").notNull(),
+  trustScore: real("trust_score").default(50), // 0-100
+  totalContracts: integer("total_contracts").default(0),
+  completedContracts: integer("completed_contracts").default(0),
+  complaints: integer("complaints").default(0),
+  averageRating: real("average_rating").default(0),
+  yearsInBusiness: integer("years_in_business").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
+export const developersRelations = relations(developers, ({ one, many }) => ({
+  user: one(users, {
+    fields: [developers.userId],
+    references: [users.id],
+  }),
+  properties: many(properties),
+  contracts: many(contracts),
+}));
 
+// Properties table
 export const properties = pgTable("properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  developerId: varchar("developer_id").references(() => developers.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
-  titleEn: text("title_en"),
-  city: text("city").notNull(),
-  propertyType: text("property_type").notNull(),
-  price: numeric("price").notNull(),
-  sizeSqm: numeric("size_sqm"),
-  description: text("description"),
-  descriptionEn: text("description_en"),
-  images: text("images").array().notNull().default(sql`ARRAY[]::text[]`),
-  status: text("status").notNull().default("available"),
-  views: numeric("views").notNull().default("0"),
-  realSalesRate: numeric("real_sales_rate"),
-  commonObjections: text("common_objections"),
-  closingFeatures: text("closing_features"),
-  demandIndicator: text("demand_indicator"),
-  // New Property Layer fields
-  paymentPlan: text("payment_plan"), // نظام السداد
-  cashPercentage: numeric("cash_percentage"), // نسبة الكاش
-  deliveryTime: text("delivery_time"), // وقت الاستلام
-  services: text("services").array().default(sql`ARRAY[]::text[]`), // الخدمات
-  developer: text("developer"), // المطور
-  projectName: text("project_name"), // اسم المشروع
-  unitNumber: text("unit_number"), // رقم الشقة
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  titleAr: text("title_ar"),
+  description: text("description").notNull(),
+  descriptionAr: text("description_ar"),
+  city: varchar("city").notNull(),
+  type: varchar("type").notNull(), // villa | apartment | office | commercial | land
+  price: integer("price").notNull(),
+  size: integer("size").notNull(), // in square meters
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  images: text("images").array().default(sql`ARRAY[]::text[]`),
+  status: varchar("status").default("available"), // available | sold | reserved
+  riskIndicators: text("risk_indicators").array().default(sql`ARRAY[]::text[]`),
+  location: jsonb("location"), // { lat, lng, address }
+  amenities: text("amenities").array().default(sql`ARRAY[]::text[]`),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const propertiesRelations = relations(properties, ({ one, many }) => ({
+  developer: one(developers, {
+    fields: [properties.developerId],
+    references: [developers.id],
+  }),
+  matches: many(propertyMatches),
+  contracts: many(contracts),
+}));
+
+// Contracts table
+export const contracts = pgTable("contracts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "cascade" }),
+  developerId: varchar("developer_id").references(() => developers.id, { onDelete: "cascade" }),
+  buyerId: varchar("buyer_id").references(() => users.id, { onDelete: "set null" }),
+  filePath: text("file_path"),
+  riskScore: real("risk_score").default(0), // 0-100
+  parsedClauses: jsonb("parsed_clauses"), // Array of extracted clauses
+  status: varchar("status").default("pending"), // pending | active | completed | disputed
+  signedAt: timestamp("signed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const contractsRelations = relations(contracts, ({ one }) => ({
+  property: one(properties, {
+    fields: [contracts.propertyId],
+    references: [properties.id],
+  }),
+  developer: one(developers, {
+    fields: [contracts.developerId],
+    references: [developers.id],
+  }),
+  buyer: one(users, {
+    fields: [contracts.buyerId],
+    references: [users.id],
+  }),
+}));
+
+// Buyer Profiles table
+export const buyerProfiles = pgTable("buyer_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).unique(),
+  riskTolerance: varchar("risk_tolerance").default("medium"), // low | medium | high
+  decisionType: varchar("decision_type").default("analytical"), // analytical | emotional | balanced
+  urgency: varchar("urgency").default("medium"), // low | medium | high
+  budgetMin: integer("budget_min"),
+  budgetMax: integer("budget_max"),
+  preferredCities: text("preferred_cities").array().default(sql`ARRAY[]::text[]`),
+  preferredTypes: text("preferred_types").array().default(sql`ARRAY[]::text[]`),
+  interestHeatmap: jsonb("interest_heatmap"), // { propertyId: interestScore }
+  objectionHistory: jsonb("objection_history"), // Array of common objections
+  psychologicalTags: text("psychological_tags").array().default(sql`ARRAY[]::text[]`),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const buyerProfilesRelations = relations(buyerProfiles, ({ one, many }) => ({
+  user: one(users, {
+    fields: [buyerProfiles.userId],
+    references: [users.id],
+  }),
+  matches: many(propertyMatches),
+}));
+
+// Property Matches table
+export const propertyMatches = pgTable("property_matches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  buyerProfileId: varchar("buyer_profile_id").references(() => buyerProfiles.id, { onDelete: "cascade" }),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "cascade" }),
+  matchScore: real("match_score").notNull(), // 0-100
+  scoreBreakdown: jsonb("score_breakdown"), // Detailed scoring components
+  explanation: text("explanation"),
+  viewed: boolean("viewed").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const propertyMatchesRelations = relations(propertyMatches, ({ one }) => ({
+  buyerProfile: one(buyerProfiles, {
+    fields: [propertyMatches.buyerProfileId],
+    references: [buyerProfiles.id],
+  }),
+  property: one(properties, {
+    fields: [propertyMatches.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+// AI Closer Sessions table
+export const aiCloserSessions = pgTable("ai_closer_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  buyerId: varchar("buyer_id").references(() => users.id, { onDelete: "cascade" }),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "set null" }),
+  sessionHistory: jsonb("session_history").notNull(), // Array of messages
+  purchaseProbability: real("purchase_probability").default(0), // 0-100
+  status: varchar("status").default("active"), // active | completed | abandoned
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const aiCloserSessionsRelations = relations(aiCloserSessions, ({ one, many }) => ({
+  buyer: one(users, {
+    fields: [aiCloserSessions.buyerId],
+    references: [users.id],
+  }),
+  property: one(properties, {
+    fields: [aiCloserSessions.propertyId],
+    references: [properties.id],
+  }),
+  objectionResponses: many(objectionResponses),
+}));
+
+// Objection Responses table
+export const objectionResponses = pgTable("objection_responses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: varchar("session_id").references(() => aiCloserSessions.id, { onDelete: "cascade" }),
+  objection: text("objection").notNull(),
+  aiResponse: text("ai_response").notNull(),
+  effectivenessScore: real("effectiveness_score"), // 0-100, based on user reaction
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const objectionResponsesRelations = relations(objectionResponses, ({ one }) => ({
+  session: one(aiCloserSessions, {
+    fields: [objectionResponses.sessionId],
+    references: [aiCloserSessions.id],
+  }),
+}));
+
+// Behavioral Tracking table
+export const behavioralEvents = pgTable("behavioral_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  eventType: varchar("event_type").notNull(), // page_view | property_view | property_interest | scroll_depth | time_spent | click
+  element: varchar("element"),
+  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "set null" }),
+  metadata: jsonb("metadata"), // Additional event data
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const behavioralEventsRelations = relations(behavioralEvents, ({ one }) => ({
+  user: one(users, {
+    fields: [behavioralEvents.userId],
+    references: [users.id],
+  }),
+  property: one(properties, {
+    fields: [behavioralEvents.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+// Referral Program table
+export const referralProgram = pgTable("referral_program", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  referredUserId: varchar("referred_user_id").references(() => users.id, { onDelete: "set null" }),
+  rewardAmount: integer("reward_amount").default(0),
+  status: varchar("status").default("pending"), // pending | completed | expired
+  convertedAt: timestamp("converted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const referralProgramRelations = relations(referralProgram, ({ one }) => ({
+  user: one(users, {
+    fields: [referralProgram.userId],
+    references: [users.id],
+  }),
+  referredUser: one(users, {
+    fields: [referralProgram.referredUserId],
+    references: [users.id],
+  }),
+}));
+
+// Zod schemas and types
+export const upsertUserSchema = createInsertSchema(users).pick({
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
+});
+
+export const insertDeveloperSchema = createInsertSchema(developers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertPropertySchema = createInsertSchema(properties).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
+export const insertContractSchema = createInsertSchema(contracts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertBuyerProfileSchema = createInsertSchema(buyerProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPropertyMatchSchema = createInsertSchema(propertyMatches).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAICloserSessionSchema = createInsertSchema(aiCloserSessions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertObjectionResponseSchema = createInsertSchema(objectionResponses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertBehavioralEventSchema = createInsertSchema(behavioralEvents).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertReferralSchema = createInsertSchema(referralProgram).omit({
+  id: true,
+  createdAt: true,
+});
+
+// TypeScript types
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
+export type User = typeof users.$inferSelect;
+export type InsertDeveloper = z.infer<typeof insertDeveloperSchema>;
+export type Developer = typeof developers.$inferSelect;
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 export type Property = typeof properties.$inferSelect;
-
-export const marketTrends = pgTable("market_trends", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  city: text("city").notNull(),
-  avgPrice: numeric("avg_price"),
-  demandLevel: text("demand_level"),
-  changePercent: numeric("change_percent"),
-  notes: text("notes"),
-  notesEn: text("notes_en"),
-  views: numeric("views").notNull().default("0"),
-  dailyDemand: numeric("daily_demand"),
-  weeklyDemand: numeric("weekly_demand"),
-  monthlyDemand: numeric("monthly_demand"),
-  supply: numeric("supply"), // العرض لكل منطقة
-  newProjectIndicator: text("new_project_indicator"),
-  salesVelocity: numeric("sales_velocity"),
-  brokerPerformance: text("broker_performance"), // JSON: { topBrokers: [{ name, deals, area }] }
-  // Market Layer enhancements
-  realTimePriceAvg: numeric("real_time_price_avg"), // Real-time price average
-  supplyMetrics: text("supply_metrics"), // JSON: { available, underConstruction, planned }
-  topPerformingBrokers: text("top_performing_brokers"), // JSON: { brokers: [] }
-  pricePrediction: numeric("price_prediction"), // Predicted price change
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertMarketTrendSchema = createInsertSchema(marketTrends).omit({
-  id: true,
-  updatedAt: true,
-});
-
-export type InsertMarketTrend = z.infer<typeof insertMarketTrendSchema>;
-export type MarketTrend = typeof marketTrends.$inferSelect;
-
-export const leads = pgTable("leads", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  phone: text("phone").notNull(),
-  email: text("email"),
-  purpose: text("purpose"),
-  city: text("city"),
-  budget: text("budget"),
-  message: text("message"),
-  funnelStage: text("funnel_stage").default("curiosity"),
-  purchaseProbability: numeric("purchase_probability").default("0"),
-  decisionType: text("decision_type"), // fast/hesitant/research-heavy
-  behavioralTriggers: text("behavioral_triggers"),
-  lastInteractionAt: timestamp("last_interaction_at"),
-  sessionId: text("session_id"),
-  // Client Layer (Golden Layer) enhancements
-  interestLevel: numeric("interest_level"), // 0-100
-  regionPreferences: text("region_preferences").array().default(sql`ARRAY[]::text[]`),
-  pitchResponses: text("pitch_responses"), // JSON: { pitchId: response }
-  objectionPatterns: text("objection_patterns"), // JSON: { objections: [] }
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertLeadSchema = createInsertSchema(leads).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertLead = z.infer<typeof insertLeadSchema>;
-export type Lead = typeof leads.$inferSelect;
-
-export const content = pgTable("content", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  title: text("title").notNull(),
-  titleEn: text("title_en"),
-  body: text("body"),
-  bodyEn: text("body_en"),
-  category: text("category"),
-  views: numeric("views").notNull().default("0"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertContentSchema = createInsertSchema(content).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertContent = z.infer<typeof insertContentSchema>;
-export type Content = typeof content.$inferSelect;
-
-export const roiCalculatorUsage = pgTable("roi_calculator_usage", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  totalUsage: numeric("total_usage").notNull().default("0"),
-  lastUsed: timestamp("last_used").defaultNow().notNull(),
-});
-
-export const agents = pgTable("agents", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  email: text("email"),
-  phone: text("phone"),
-  dailyContacts: numeric("daily_contacts").default("0"),
-  interestedClients: numeric("interested_clients").default("0"), // عدد العملاء المهتمين
-  closingRate: numeric("closing_rate").default("0"),
-  responseSpeed: numeric("response_speed"), // سرعة الرد (بالدقائق)
-  totalDeals: numeric("total_deals").default("0"),
-  totalRevenue: numeric("total_revenue").default("0"),
-  activeProjects: text("active_projects").array().default(sql`ARRAY[]::text[]`),
-  scripts: text("scripts"), // JSON: { commonObjections: [], bestResponses: [], pitchTemplates: [] }
-  pitchEffectiveness: text("pitch_effectiveness"), // JSON: { bestPitches: [{ pitch, conversionRate }] }
-  objections: text("objections"), // JSON: { common: [{ objection, frequency }], responses: [] }
-  averageDealPrice: numeric("average_deal_price"), // الأسعار اللي بيقفل بيها
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertAgentSchema = createInsertSchema(agents).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type InsertAgent = z.infer<typeof insertAgentSchema>;
-export type Agent = typeof agents.$inferSelect;
-
-export const userBehaviors = pgTable("user_behaviors", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  sessionId: text("session_id").notNull(),
-  leadId: text("lead_id"),
-  behaviorType: text("behavior_type").notNull(),
-  action: text("action").notNull(),
-  target: text("target"),
-  targetId: text("target_id"),
-  metadata: text("metadata"),
-  timeSpent: numeric("time_spent"),
-  scrollDepth: numeric("scroll_depth"),
-  pageUrl: text("page_url"),
-  userAgent: text("user_agent"),
-  ipAddress: text("ip_address"),
-  // Behavior Layer (Most Critical) enhancements
-  triggerType: text("trigger_type"), // What triggered this behavior
-  trustSignals: text("trust_signals"), // JSON: { signals: [] }
-  decisionDriver: text("decision_driver"), // What drove the decision
-  pitchStyle: text("pitch_style"), // Style of pitch that worked
-  agentClientCompatibility: numeric("agent_client_compatibility"), // Compatibility score
-  peakTimeIndicator: text("peak_time_indicator"), // Peak purchase time
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertUserBehaviorSchema = createInsertSchema(userBehaviors).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertUserBehavior = z.infer<typeof insertUserBehaviorSchema>;
-export type UserBehavior = typeof userBehaviors.$inferSelect;
-
-export const transactions = pgTable("transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  leadId: text("lead_id").notNull(),
-  propertyId: text("property_id").notNull(),
-  agentId: text("agent_id"),
-  dealValue: numeric("deal_value").notNull(),
-  commission: numeric("commission"),
-  status: text("status").default("pending"),
-  purchaseDate: timestamp("purchase_date"),
-  contractSigned: timestamp("contract_signed"),
-  paymentReceived: timestamp("payment_received"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertTransactionSchema = createInsertSchema(transactions).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
-export type Transaction = typeof transactions.$inferSelect;
-
-export const creditTransactions = pgTable("credit_transactions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: text("user_id").notNull(),
-  amount: numeric("amount").notNull(),
-  type: text("type").notNull(),
-  reason: text("reason"),
-  relatedEntityId: text("related_entity_id"),
-  relatedEntityType: text("related_entity_type"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertCreditTransactionSchema = createInsertSchema(creditTransactions).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertCreditTransaction = z.infer<typeof insertCreditTransactionSchema>;
-export type CreditTransaction = typeof creditTransactions.$inferSelect;
-
-export const userFavorites = pgTable("user_favorites", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: text("user_id").notNull(),
-  propertyId: text("property_id").notNull(),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertUserFavoriteSchema = createInsertSchema(userFavorites).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertUserFavorite = z.infer<typeof insertUserFavoriteSchema>;
-export type UserFavorite = typeof userFavorites.$inferSelect;
-
-export const expertSessions = pgTable("expert_sessions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: text("user_id").notNull(),
-  agentId: text("agent_id"),
-  sessionDate: timestamp("session_date").notNull(),
-  sessionType: text("session_type").notNull(),
-  status: text("status").default("pending"),
-  notes: text("notes"),
-  meetingLink: text("meeting_link"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertExpertSessionSchema = createInsertSchema(expertSessions).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertExpertSession = z.infer<typeof insertExpertSessionSchema>;
-export type ExpertSession = typeof expertSessions.$inferSelect;
-
-// Credit Score Tables
-export const creditScores = pgTable("credit_scores", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  entityId: text("entity_id").notNull(), // User ID, Property ID, or Agent ID
-  entityType: text("entity_type").notNull(), // "buyer", "project", "agent"
-  score: numeric("score").notNull().default("0"), // 0-1000
-  factors: text("factors"), // JSON: { factor: score }
-  lastCalculated: timestamp("last_calculated").defaultNow().notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertCreditScoreSchema = createInsertSchema(creditScores).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  lastCalculated: true,
-});
-
-export type InsertCreditScore = z.infer<typeof insertCreditScoreSchema>;
-export type CreditScore = typeof creditScores.$inferSelect;
-
-// Data Contributions Table
-export const dataContributions = pgTable("data_contributions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  contributorId: text("contributor_id").notNull(),
-  dataType: text("data_type").notNull(), // property_info, pricing, market_trends, sales_data
-  region: text("region"),
-  data: text("data").notNull(), // JSON data
-  accuracyScore: numeric("accuracy_score").default("0"),
-  creditsEarned: numeric("credits_earned").default("0"),
-  isAnonymous: text("is_anonymous").default("true"),
-  verified: text("verified").default("false"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const insertDataContributionSchema = createInsertSchema(dataContributions).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertDataContribution = z.infer<typeof insertDataContributionSchema>;
-export type DataContribution = typeof dataContributions.$inferSelect;
+export type InsertContract = z.infer<typeof insertContractSchema>;
+export type Contract = typeof contracts.$inferSelect;
+export type InsertBuyerProfile = z.infer<typeof insertBuyerProfileSchema>;
+export type BuyerProfile = typeof buyerProfiles.$inferSelect;
+export type InsertPropertyMatch = z.infer<typeof insertPropertyMatchSchema>;
+export type PropertyMatch = typeof propertyMatches.$inferSelect;
+export type InsertAICloserSession = z.infer<typeof insertAICloserSessionSchema>;
+export type AICloserSession = typeof aiCloserSessions.$inferSelect;
+export type InsertObjectionResponse = z.infer<typeof insertObjectionResponseSchema>;
+export type ObjectionResponse = typeof objectionResponses.$inferSelect;
+export type InsertBehavioralEvent = z.infer<typeof insertBehavioralEventSchema>;
+export type BehavioralEvent = typeof behavioralEvents.$inferSelect;
+export type InsertReferral = z.infer<typeof insertReferralSchema>;
+export type Referral = typeof referralProgram.$inferSelect;

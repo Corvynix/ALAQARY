@@ -1,9 +1,9 @@
-modules = ["nodejs-20", "web"]
+modules = ["nodejs-20", "web", "postgresql-16"]
 run = "npm run dev"
 hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
-channel = "stable-25_05"
+channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -15,19 +15,7 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 39981
-externalPort = 3001
-
-[[ports]]
-localPort = 44199
-externalPort = 3003
-
-[[ports]]
-localPort = 45403
-externalPort = 3002
-
-[[ports]]
-localPort = 45811
+localPort = 46735
 externalPort = 3000
 
 [env]
@@ -49,14 +37,10 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[workflows.workflow.metadata]
-outputType = "webview"
-
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
 
 [agent]
-integrations = ["javascript_database:1.0.0"]
-expertMode = true
+integrations = ["javascript_gemini:1.0.0", "javascript_database:1.0.0", "javascript_log_in_with_replit:1.0.0"]

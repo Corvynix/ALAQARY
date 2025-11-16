@@ -1,247 +1,126 @@
-# Real Estate Intelligence OS
+# Arabic-First Real Estate SaaS Platform
 
 ## Overview
 
-A comprehensive multi-sided real estate intelligence platform that functions like "OpenAI for real estate" - featuring a central AI brain, network effects, and role-based ecosystems. The system serves four distinct user types (Agents, Developers, Clients, and Data Contributors) with specialized dashboards and tools.
+This is an intelligent real estate platform designed for passive investors and agents in Arabic-speaking markets. The platform creates competitive advantages through three core moats:
 
-**Platform Vision:** Transform real estate through data intelligence, AI-powered insights, and invisible monetization via a credit-based system. Each role contributes to and benefits from the platform's collective intelligence.
+1. **Behavioral Data Moat**: Tracks user interactions, preferences, and psychology to build detailed buyer profiles
+2. **Matching Engine Moat**: Calculates compatibility scores between buyers and properties using 30+ parameters
+3. **Trust Score Moat**: Evaluates developer reliability using historical data, complaints, and buyer feedback
 
-### Recent Changes (November 15, 2025)
-
-**Multi-Role Transformation Complete:**
-- Migrated from single luxury consultant website to comprehensive multi-sided platform
-- Implemented 4 role-based user types with specialized dashboards
-- Enhanced registration with role selection and profile management
-- Added credit-based economy foundation (accuracyScore, credits tracking)
-- Created role-specific routing with access control
-- Prepared infrastructure for AI Real Estate Brain and shared features
-
-The platform now supports a complete ecosystem where Agents get leads intelligence, Developers get market insights, Clients get smart recommendations, and Data Contributors earn credits for accurate data.
+The platform serves three user roles:
+- **Buyers**: Find properties matched to their preferences via AI-powered recommendations
+- **Developers**: Manage properties, view leads, and optimize their trust scores
+- **Admins**: Monitor platform analytics, behavioral funnels, and developer performance
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
 
-## Role-Based Access System
-
-The platform now supports **5 user roles**, each with specialized dashboards and features:
-
-### 1. Admin Role
-For testing admin features, an admin account has been created:
-- **Username:** admin
-- **Password:** admin123
-
-Admin access includes:
-- Market Intelligence Dashboard
-- Agent Intelligence
-- Client Qualification System
-- Behavior Insights
-- Super Intelligence Dashboard
-
-### 2. Agent Role (`/agent`)
-**Purpose:** Sales professionals who need leads intelligence and performance tools
-
-**Dashboard Features:**
-- **Leads Intelligence Hub:** High-potential leads analysis with AI scoring
-- **AI Scripts Center:** Call scripts and conversation templates
-- **Performance Stats:** Conversion rates, call analytics, revenue tracking
-- **Client Relationship Manager:** Pipeline and follow-up system
-
-**Registration Fields:** email, phone, fullName, companyName
-
-### 3. Developer Role (`/developer`)
-**Purpose:** Real estate developers who need market insights and project validation
-
-**Dashboard Features:**
-- **Demand Heatmaps:** Geographic demand visualization with zone scoring
-- **Launch Project Checker:** Feasibility analysis for new developments
-- **Pricing Recommendation Engine:** AI-powered pricing suggestions
-- **Approval Score System:** Project approval probability assessment
-
-**Registration Fields:** email, phone, fullName, companyName
-
-### 4. Client Role (`/client`)
-**Purpose:** Property buyers and investors seeking smart recommendations
-
-**Dashboard Features:**
-- **Smart Match Questions:** AI-powered property matching system
-- **Compare Properties Tool:** Side-by-side comparison with scoring
-- **Book Expert Session:** Schedule consultations with specialists
-- **Favorites & Saved Searches:** Personal property collections
-
-**Registration Fields:** email, phone, fullName
-
-### 5. Data Contributor Role (`/contributor`)
-**Purpose:** Market insiders who provide data in exchange for credits
-
-**Dashboard Features:**
-- **Add Data Wizard:** Structured data submission interface
-- **Earn Credits System:** Credit rewards for accurate contributions
-- **Accuracy Score Tracker:** Performance metrics (0-100% accuracy)
-- **Confidential Mode:** Privacy-protected submission system
-
-**Registration Fields:** email, phone, fullName
-**Special Features:** accuracyScore tracking, credits balance
-
-### Registration Flow
-
-Users now select their role during registration:
-1. **Step 1:** Choose role (Agent, Developer, Client, or Data Contributor)
-2. **Step 2:** Provide role-specific profile information
-3. **Auto-redirect:** Automatic routing to role-specific dashboard after login
-
-**Note:** All dashboards are protected by role-based access control. Users can only access their designated dashboard.
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Framework & Core Technologies**
-- **React 18** with **Vite** build system for optimal performance
-- **TypeScript** for type safety across the application
-- **Wouter** for lightweight client-side routing (not Next.js despite initial requirements - this is a single-page application)
-- **TailwindCSS** for utility-first styling with extensive custom theming
-- **shadcn/ui** component library (New York style variant) for consistent, accessible UI components
+**Framework**: React 18 with TypeScript, built using Vite for fast development and optimized production builds.
 
-**State Management & Data Fetching**
-- **TanStack Query (React Query)** for server state management, caching, and API interactions
-- Custom query client configured with infinite stale time and disabled refetching for manual data control
+**UI Component System**: Radix UI primitives with shadcn/ui styling patterns, providing accessible components styled with TailwindCSS. The design system uses the "new-york" style variant with CSS variables for theming.
 
-**Design System**
-- Custom dark luxury theme with deep blacks (#0D0D0D) and luxury gold (#D4AF37)
-- Bilingual support: Arabic (RTL, primary) and English (LTR, secondary)
-- Typography: Playfair Display (headings), Inter (body), Cairo/Noto Kufi Arabic (Arabic text)
-- Animation-driven UX with gold gradient glows, scroll-triggered counters, and fade-up transitions
-- Responsive grid layouts with RTL awareness
+**RTL-First Design**: All layouts are designed primarily for Arabic (RTL) with English (LTR) as a secondary option. The HTML template sets `lang="ar"` and `dir="rtl"` by default. Typography uses IBM Plex Sans Arabic as the primary font for comprehensive Arabic support, with Inter as a fallback for technical content.
 
-**Component Architecture**
-- Modular, reusable components organized by feature
-- Bilingual prop-based language switching throughout
-- Separation of presentation (UI components) and business logic (pages)
-- Example components provided for each major UI element
+**State Management**: 
+- TanStack Query (React Query) handles server state, caching, and API synchronization
+- React Context for language/i18n state
+- React Hook Form with Zod validation for form state
+
+**Routing**: Wouter (lightweight client-side routing)
+
+**Key Features**:
+- Bilingual support (Arabic/English) via custom i18n context
+- Multi-step profile builder wizard for buyer psychological profiling
+- Real-time AI chat interface for property consultation
+- Behavioral tracking (scroll depth, hover, dwell time)
+- Role-based dashboards (buyer, developer, admin)
 
 ### Backend Architecture
 
-**Server Framework**
-- **Express.js** server with TypeScript
-- Custom Vite middleware integration for development with HMR
-- Session-based architecture preparation (connect-pg-simple for sessions)
+**Runtime**: Node.js with Express server
 
-**API Design**
-- RESTful API endpoints under `/api` prefix
-- CRUD operations for: Properties, Market Trends, Leads, Content
-- Zod schema validation on all incoming data
-- Centralized storage layer abstraction for database operations
+**Type Safety**: Full-stack TypeScript with shared schema definitions
 
-**Database Layer**
-- **Drizzle ORM** for type-safe database interactions
-- **Neon Serverless Postgres** (@neondatabase/serverless) as the database provider
-- WebSocket-based connection pooling for serverless environments
-- Schema-first design with automatic TypeScript type inference
+**API Design**: RESTful endpoints organized by resource:
+- `/api/auth/*` - Authentication and user management
+- `/api/properties/*` - Property listings and details
+- `/api/developers/*` - Developer profiles and trust scores
+- `/api/buyer-profiles/*` - Buyer psychological profiles
+- `/api/matches/*` - Property-buyer matching scores
+- `/api/ai-closer/*` - AI conversation sessions
+- `/api/behavioral/*` - User interaction tracking
+- `/api/admin/*` - Platform analytics
 
-**Database Schema**
+**Authentication**: Replit Auth (OpenID Connect) with Passport.js strategy, session-based authentication using PostgreSQL session store
 
-**Core Tables:**
-- `users` - Multi-role authentication system with profile fields:
-  - Roles: admin, agent, developer, client, data_contributor
-  - Profile: email, phone, fullName, companyName
-  - Credits economy: credits (decimal), accuracyScore (decimal)
-  - Preferences: profileComplete (boolean), preferences (jsonb)
-- `properties` - Property listings with bilingual content, images array, status tracking
-- `market_trends` - Market analysis data with demand levels, price changes
-- `leads` - Contact form submissions for conversion tracking
-- `content` - Blog posts and educational content with bilingual support
+**Core Business Logic**:
+- **Matching Engine** (`server/services/matchingEngine.ts`): Calculates match scores based on budget fit (25%), location match (20%), property type (20%), risk alignment (15%), developer trust (10%), and behavioral signals (10%)
+- **Trust Score Calculator**: Evaluates developers using contract completion rate, complaint history, average ratings, and years in business
+- **AI Service** (`server/services/aiService.ts`): Integrates Google Gemini AI for conversational property recommendations and objection handling
 
-**New Platform Tables:**
-- `creditTransactions` - Track credit earnings and spending
-  - userId, amount, transactionType (earn/spend), description
-- `userFavorites` - Save favorite properties per user
-  - userId, propertyId, notes, createdAt
-- `expertSessions` - Book consultation sessions
-  - userId, sessionType, scheduledFor, status, notes
+### Data Storage
 
-All tables use `varchar` UUID primary keys for consistency. ID columns are NEVER changed from their established type to maintain data integrity.
+**Database**: PostgreSQL (via Neon serverless)
 
-### Build & Deployment Strategy
+**ORM**: Drizzle ORM with type-safe query builder
 
-**Development Workflow**
-- `npm run dev` - Runs Express server with Vite middleware in development mode
-- TypeScript compilation checking via `npm run check`
-- Database schema pushing via `npm run db:push` (Drizzle Kit)
+**Key Schema Design Decisions**:
 
-**Production Build**
-- Frontend: Vite builds React SPA to `dist/public`
-- Backend: esbuild bundles Express server to `dist/index.js` (ESM format)
-- Single production command: `npm start` runs the built Express server serving static files
+1. **Sessions Table**: Required for Replit Auth session persistence
+2. **Users Table**: Stores authentication data and role-based access (buyer/developer/admin)
+3. **Buyer Profiles**: Captures psychological attributes (risk tolerance, decision type, urgency, budget, preferences, psychological tags)
+4. **Developers**: Tracks trust metrics (total/completed contracts, complaints, ratings, years in business)
+5. **Properties**: Links to developers, stores images array, risk indicators, pricing, specifications
+6. **Property Matches**: Junction table storing calculated match scores and timestamps
+7. **AI Closer Sessions**: Stores conversation history as JSONB, tracks purchase probability
+8. **Behavioral Events**: Time-series data for user interactions (event type, property/page context, metadata)
+9. **Contracts**: File storage references with risk scores and parsed clauses
+10. **Objection Responses**: AI interaction effectiveness tracking
 
-**File Structure Philosophy**
-- `/client` - All frontend code (React components, pages, styles)
-- `/server` - Backend code (routes, database, storage layer)
-- `/shared` - Shared types, schemas, and validation (used by both client and server)
-- Path aliases configured: `@/` for client, `@shared/` for shared code
+**Data Relationships**:
+- One-to-one: User → Buyer Profile, User → Developer
+- One-to-many: Developer → Properties, Buyer Profile → Property Matches, Buyer → AI Sessions
+- Many-to-many: Properties ↔ Buyers (via Property Matches)
 
-### Design Philosophy Implementation
+### External Dependencies
 
-**Conversion Flow Architecture**
-- Hero section with emotional headline and primary CTA ("Free Consultation")
-- WhatsApp floating button for instant communication
-- Contact forms integrated throughout with lead capture to database
-- Trust-building sections with animated counters (500+ clients, 98% satisfaction)
-- Property cards with "Learn the Story" emotional anchor CTAs
+**AI/ML Services**:
+- **Google Gemini AI** (`@google/genai`): Powers the AI Closer conversational interface, generates property recommendations, handles objections, and estimates purchase probability. Requires `GEMINI_API_KEY` environment variable.
 
-**Content Strategy**
-- Manual data entry system (no automated scraping)
-- Bilingual content management (Arabic primary, English secondary)
-- Seed data provided for market trends and sample properties
-- Educational "Real Estate Mindset" positioning throughout
+**Database Infrastructure**:
+- **Neon Serverless PostgreSQL** (`@neondatabase/serverless`): Serverless PostgreSQL with WebSocket connections for edge deployments. Requires `DATABASE_URL` environment variable.
 
-## External Dependencies
+**Authentication**:
+- **Replit Auth (OpenID Connect)**: Handles user authentication via OAuth. Requires `REPL_ID`, `ISSUER_URL`, and `SESSION_SECRET` environment variables.
 
-### Core UI Libraries
-- **Radix UI primitives** - Comprehensive set of accessible, unstyled components (accordion, alert-dialog, avatar, checkbox, dialog, dropdown-menu, hover-card, label, menubar, navigation-menu, popover, progress, radio-group, scroll-area, select, separator, slider, switch, tabs, toast, toggle, tooltip)
-- **shadcn/ui** - Pre-built component library based on Radix UI with custom theming
-- **Lucide React** - Icon library for consistent iconography
-- **React Icons** - Additional icons (WhatsApp, social media)
+**UI Component Libraries**:
+- **Radix UI**: Headless accessible component primitives (dialogs, dropdowns, popovers, tooltips, etc.)
+- **shadcn/ui**: Pre-styled component patterns built on Radix UI
+- **Lucide React**: Icon library
 
-### Form Handling
-- **React Hook Form** - Form state management
-- **@hookform/resolvers** - Zod integration for form validation
-- **Zod** - Schema validation library (via drizzle-zod)
+**Form Handling**:
+- **React Hook Form**: Form state management
+- **Zod**: Runtime schema validation
+- **@hookform/resolvers**: Zod integration for React Hook Form
 
-### Styling & Animation
-- **TailwindCSS** - Utility-first CSS framework
-- **class-variance-authority** - Component variant management
-- **clsx** & **tailwind-merge** - Conditional class name utilities
-- **PostCSS** with Autoprefixer
+**Styling**:
+- **TailwindCSS**: Utility-first CSS framework with custom theme
+- **class-variance-authority**: Type-safe variant styling
+- **clsx** + **tailwind-merge**: Conditional class composition
 
-### Database & ORM
-- **Drizzle ORM** - Type-safe database toolkit
-- **@neondatabase/serverless** - Serverless Postgres driver with WebSocket support
-- **drizzle-zod** - Automatic Zod schema generation from Drizzle schemas
-- **ws** - WebSocket library for Neon connection
+**Development Tools**:
+- **Vite**: Build tool and dev server
+- **Drizzle Kit**: Database migration tool
+- **TypeScript**: Static type checking across stack
 
-### Build Tools & Development
-- **Vite** - Fast build tool and dev server
-- **@vitejs/plugin-react** - React support for Vite
-- **esbuild** - Fast JavaScript bundler for server build
-- **TypeScript** - Type safety across the stack
-- **tsx** - TypeScript execution for development
+**Session Storage**:
+- **connect-pg-simple**: PostgreSQL session store for Express sessions
 
-### Data Fetching
-- **TanStack Query** - Async state management and caching
-- **date-fns** - Date formatting and manipulation
-
-### Additional Utilities
-- **cmdk** - Command menu component
-- **embla-carousel-react** - Carousel/slider functionality (for testimonials)
-- **nanoid** - Unique ID generation
-
-### Replit-Specific Integrations
-- **@replit/vite-plugin-runtime-error-modal** - Enhanced error reporting
-- **@replit/vite-plugin-cartographer** - Development tooling (dev mode only)
-- **@replit/vite-plugin-dev-banner** - Development banner (dev mode only)
-
-### Asset Management
-- Custom asset organization with stock images and generated images stored in `/attached_assets`
-- Vite alias configured for `@assets` path resolution
-- Image optimization handled through Vite's asset pipeline
+**Fonts**:
+- **Google Fonts CDN**: IBM Plex Sans Arabic, Inter (loaded in HTML template)

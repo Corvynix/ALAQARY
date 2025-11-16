@@ -1,0 +1,78 @@
+You are an expert AI full-stack engineer and system architect. Your task: generate a complete, production-ready Arabic-first real estate SaaS platform from scratch for passive investors and agents, designed to dominate the market via trust, data, and smart decision-making. Do NOT produce a Minimal Viable Product — produce full production architecture and code with all features and defenses to prevent competition. Include all details needed to implement from zero to launch. Follow these rules strictly:
+
+1. **Core Objective**
+- Platform must control the market via 3 Moats: Behavioral Data Moat, Matching Engine Moat, Trust Score Moat.
+- Must track, store, and act on user behavioral data, buyer psychology, objection patterns, and interaction histories.
+- Matching Engine must calculate a Match Score for every buyer-property pair using 30+ behavioral and profile parameters.
+- Trust Score must measure developer reliability using historical data, complaints, contract history, and buyer feedback.
+
+2. **Architecture**
+- Full-stack TypeScript: React + Vite frontend, Express + Node backend.
+- PostgreSQL database with Drizzle ORM; all schemas must include Users, Properties, Developers, Contracts, AI Sessions, Buyer Profiles, Property Matches, Objection Responses, Behavioral Tracking, Referral Program.
+- React Context + TanStack Query for state management; i18next for Arabic/English bilingual support.
+- TailwindCSS with centralized CSS variables for full Arabic-first RTL design.
+- JWT authentication with role-based access (Client / Developer / Admin).
+- File storage integration for contract uploads (PDF/Word).
+- AI Simulation engine integrated via Gemini AI or local Python-based model (for buyer interview, objection handling, and predictive suggestions).
+
+3. **Frontend Features**
+- **Buyer Interface**
+    - Buyer Profile Builder Wizard (psychological tagging, risk tolerance, spending behavior)
+    - Property Listing and Detail Pages (developer trust score, risk badges)
+    - AI Closer Chat (multi-turn session management, purchase probability tracking)
+    - Property Match Dashboard (scores, explanations, and recommended actions)
+    - Behavioral Consent and Tracking
+- **Developer Interface**
+    - Developer Dashboard (leads, trust score breakdown, match optimization, A/B testing)
+- **Admin Interface**
+    - Behavioral Funnel Analytics
+    - AI Session Performance Metrics
+    - Contract Issue Detection and Risk Graphs
+    - Developer Blacklist / Monitoring
+
+4. **Backend Features**
+- API endpoints for:
+    - Auth, Users, Properties, Developers, Contracts, Buyer Profiles, Property Matches, AI Closer Sessions, Objection Responses, Behavioral Events, Referral Program
+- Matching Engine algorithm combining buyer profile, risk tolerance, interest heatmap, budget, developer trust score
+- Trust Score calculation engine for developers
+- AI Closer session management
+- Behavioral micro-tracking engine (scroll depth, hover, dwell time, interactions)
+- Contract parsing and risk scoring service
+
+5. **Database Schema**
+- Users: id, name, email, phone, role, credits, behavioralProfileId
+- Developers: id, name, company, trustScore, contracts, reviews, complaints
+- Properties: id, title, city, type, price, size, images[], status, developerId, riskIndicators[]
+- Contracts: id, propertyId, developerId, filePath, riskScore, parsedClauses[]
+- Buyer Profiles: id, userId, riskTolerance, decisionType, urgency, interestHeatmap, objectionHistory
+- Property Matches: id, buyerProfileId, propertyId, matchScore, timestamp
+- AI Closer Sessions: id, buyerId, sessionHistory[], purchaseProbability, timestamp
+- Objection Responses: id, sessionId, objection, AIResponse, effectivenessScore
+- Behavioral Tracking: id, userId, eventType, element, timestamp, metadata
+- Referral Program: id, userId, referralCode, rewards, conversions
+
+6. **Operational Features**
+- Real-time event tracking with consent
+- Session recording and analytics
+- Admin dashboards with visualization of funnels, AI session efficiency, property performance
+- Multi-language support (Arabic RTL + English LTR)
+- Mobile-friendly, responsive layout
+
+7. **Launch Readiness**
+- Dev, staging, production environments
+- Automated tests: unit, integration, e2e
+- CI/CD pipeline (Replit + GitHub Actions)
+- Environment variables: DATABASE_URL, JWT_SECRET, AI_KEY, PORT, NODE_ENV
+- Full logging and error handling
+- Security: rate limiting, input validation, helmet, CORS, JWT auth
+
+8. **Execution Instructions**
+- Generate full project structure (client + server + shared types)
+- Include scripts to initialize DB with all tables
+- Include sample seed data for users, properties, developers
+- Include AI simulation scripts for testing buyer interviews
+- Provide ready-to-run commands: npm install, npm run dev, npm run build, npm start
+- Ensure all features are wired and functional from day one
+
+**Goal:** The platform must be capable of full market domination upon launch, impossible to replicate by competitors due to integrated behavioral data moat, smart matching engine, and developer trust scoring. Output the project in a ready-to-run Replit-compatible structure with all files, folders, code, and configs.
+

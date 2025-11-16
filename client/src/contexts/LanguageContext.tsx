@@ -1,35 +1,42 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-type Language = "ar" | "en";
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
+import type { Language } from '@/lib/i18n';
+import { translations } from '@/lib/i18n';
 
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  toggleLanguage: () => void;
+  t: (key: keyof typeof translations.ar) => string;
+  dir: 'rtl' | 'ltr';
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem("language");
-    return (saved === "ar" || saved === "en") ? saved : "ar";
-  });
+  const [language, setLanguageState] = useState<Language>('ar');
 
   useEffect(() => {
-    localStorage.setItem("language", language);
-  }, [language]);
+    const saved = localStorage.getItem('language') as Language;
+    if (saved && (saved === 'ar' || saved === 'en')) {
+      setLanguageState(saved);
+    }
+  }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
+    localStorage.setItem('language', lang);
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
   };
 
-  const toggleLanguage = () => {
-    setLanguageState(prev => prev === "ar" ? "en" : "ar");
+  const t = (key: keyof typeof translations.ar): string => {
+    return translations[language][key] || key;
   };
+
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, dir }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -37,8 +44,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
 export function useLanguage() {
   const context = useContext(LanguageContext);
-  if (context === undefined) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
+  if (!context) {
+    throw new Error('useLanguage must be used within LanguageProvider');
   }
   return context;
 }

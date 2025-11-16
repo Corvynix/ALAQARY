@@ -3,164 +3,45 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LanguageProvider } from "@/contexts/LanguageContext";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import HomePage from "@/pages/HomePage";
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
-import PropertiesPage from "@/pages/PropertiesPage";
-import MarketIntelligencePage from "@/pages/MarketIntelligencePage";
-import AgentIntelligencePage from "@/pages/AgentIntelligencePage";
-import ClientQualificationPage from "@/pages/ClientQualificationPage";
-import BehaviorInsightsPage from "@/pages/BehaviorInsightsPage";
-import SuperIntelligenceDashboard from "@/pages/SuperIntelligenceDashboard";
-import AgentDashboardPage from "@/pages/AgentDashboardPage";
-import DeveloperDashboardPage from "@/pages/DeveloperDashboardPage";
-import ClientDashboardPage from "@/pages/ClientDashboardPage";
-import ContributorDashboardPage from "@/pages/ContributorDashboardPage";
-import AIBrainPage from "@/pages/AIBrainPage";
-import EnhancedMarketIntelligencePage from "@/pages/EnhancedMarketIntelligencePage";
-import AgentOnboarding from "@/pages/onboarding/AgentOnboarding";
-import DeveloperOnboarding from "@/pages/onboarding/DeveloperOnboarding";
-import ClientOnboarding from "@/pages/onboarding/ClientOnboarding";
-import ContributorOnboarding from "@/pages/onboarding/ContributorOnboarding";
+import { useAuth } from "@/hooks/useAuth";
+import Landing from "@/pages/Landing";
+import Home from "@/pages/Home";
+import PropertiesList from "@/pages/PropertiesList";
+import PropertyDetail from "@/pages/PropertyDetail";
+import ProfileBuilder from "@/pages/ProfileBuilder";
+import BuyerDashboard from "@/pages/BuyerDashboard";
+import DeveloperDashboard from "@/pages/DeveloperDashboard";
+import AdminDashboard from "@/pages/AdminDashboard";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
   return (
     <Switch>
-      <Route path="/" component={HomePage} />
-      <Route path="/login" component={LoginPage} />
-      <Route path="/register" component={RegisterPage} />
-      
-      <Route path="/onboarding/agent">
-        {() => (
-          <ProtectedRoute>
-            <AgentOnboarding />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/onboarding/developer">
-        {() => (
-          <ProtectedRoute>
-            <DeveloperOnboarding />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/onboarding/client">
-        {() => (
-          <ProtectedRoute>
-            <ClientOnboarding />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/onboarding/contributor">
-        {() => (
-          <ProtectedRoute>
-            <ContributorOnboarding />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/properties">
-        {() => (
-          <ProtectedRoute>
-            <PropertiesPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/ai-brain">
-        {() => (
-          <ProtectedRoute>
-            <AIBrainPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/market-data">
-        {() => (
-          <ProtectedRoute>
-            <EnhancedMarketIntelligencePage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/market-intelligence">
-        {() => (
-          <ProtectedRoute requireAdmin>
-            <MarketIntelligencePage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/market-intelligence/:city">
-        {() => (
-          <ProtectedRoute requireAdmin>
-            <MarketIntelligencePage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/agents/:id/intelligence">
-        {() => (
-          <ProtectedRoute requireAdmin>
-            <AgentIntelligencePage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/clients/:leadId/qualification">
-        {() => (
-          <ProtectedRoute requireAdmin>
-            <ClientQualificationPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/behavior-insights">
-        {() => (
-          <ProtectedRoute requireAdmin>
-            <BehaviorInsightsPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      <Route path="/dashboard">
-        {() => (
-          <ProtectedRoute requireAdmin>
-            <SuperIntelligenceDashboard />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/agent-dashboard">
-        {() => (
-          <ProtectedRoute requireRole="agent">
-            <AgentDashboardPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/developer-dashboard">
-        {() => (
-          <ProtectedRoute requireRole="developer">
-            <DeveloperDashboardPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/client-dashboard">
-        {() => (
-          <ProtectedRoute requireRole="client">
-            <ClientDashboardPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
-      <Route path="/contributor-dashboard">
-        {() => (
-          <ProtectedRoute requireRole="data_contributor">
-            <ContributorDashboardPage />
-          </ProtectedRoute>
-        )}
-      </Route>
-      
+      {isLoading || !isAuthenticated ? (
+        <Route path="/" component={Landing} />
+      ) : (
+        <>
+          <Route path="/" component={Home} />
+          <Route path="/profile/builder" component={ProfileBuilder} />
+          <Route path="/dashboard">
+            {() => {
+              if (user?.role === 'developer') {
+                return <DeveloperDashboard />;
+              } else if (user?.role === 'admin') {
+                return <AdminDashboard />;
+              }
+              return <BuyerDashboard />;
+            }}
+          </Route>
+          <Route path="/dashboard/developer" component={DeveloperDashboard} />
+          <Route path="/dashboard/admin" component={AdminDashboard} />
+        </>
+      )}
+      <Route path="/properties" component={PropertiesList} />
+      <Route path="/properties/:id" component={PropertyDetail} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -168,18 +49,14 @@ function Router() {
 
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <LanguageProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-            </TooltipProvider>
-          </LanguageProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
   );
 }
 
