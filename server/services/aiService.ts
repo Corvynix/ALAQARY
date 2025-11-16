@@ -1,11 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const apiKey = process.env.GEMINI_API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export async function generateAIResponse(
   messages: { role: string; content: string }[],
   propertyContext?: any
 ): Promise<{ response: string; purchaseProbability: number }> {
+  if (!ai) {
+    console.warn('AI Service: GEMINI_API_KEY not configured, using fallback responses');
+    return {
+      response: "I'm here to help you find the perfect property. What are you looking for?",
+      purchaseProbability: 30,
+    };
+  }
+  
   try {
     const systemPrompt = `You are an expert real estate AI assistant helping buyers find their perfect property.
 Your goal is to understand their needs, address objections, and guide them toward a purchase decision.
@@ -56,6 +65,11 @@ Respond with ONLY a number between 0 and 100.`;
 }
 
 export async function analyzeObjection(objection: string): Promise<string> {
+  if (!ai) {
+    console.warn('AI Service: GEMINI_API_KEY not configured, using fallback responses');
+    return "I understand your concern. Let me provide more information to help with your decision.";
+  }
+  
   try {
     const prompt = `As a real estate expert, provide a brief, persuasive response to this buyer objection:
 "${objection}"

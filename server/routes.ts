@@ -161,7 +161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const { matchScore, breakdown, explanation } = calculateMatchScore(
           profile,
           property,
-          property.developer
+          property.developer ?? null
         );
 
         if (matchScore >= 30) {

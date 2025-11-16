@@ -11,8 +11,8 @@ export const translations = {
     profile: 'الملف الشخصي',
     
     // Hero
-    heroTitle: 'اكتشف عقارك المثالي',
-    heroSubtitle: 'منصة عقارية ذكية تجمع بينك وبين أفضل العقارات باستخدام تقنيات الذكاء الاصطناعي',
+    heroTitle: 'اكتشف عقارك المثالي في أسيوط',
+    heroSubtitle: 'منصة عقارية ذكية في أسيوط تجمع بينك وبين أفضل العقارات باستخدام تقنيات الذكاء الاصطناعي',
     searchPlaceholder: 'ابحث عن موقع أو نوع العقار',
     getStarted: 'ابدأ الآن',
     exploreProperties: 'استكشف العقارات',
@@ -79,8 +79,8 @@ export const translations = {
     profile: 'Profile',
     
     // Hero
-    heroTitle: 'Discover Your Perfect Property',
-    heroSubtitle: 'Smart real estate platform matching you with the best properties using AI technology',
+    heroTitle: 'Discover Your Perfect Property in Asyut',
+    heroSubtitle: 'Smart real estate platform in Asyut matching you with the best properties using AI technology',
     searchPlaceholder: 'Search for location or property type',
     getStarted: 'Get Started',
     exploreProperties: 'Explore Properties',
@@ -140,9 +140,9 @@ export const translations = {
 };
 
 export function formatPrice(price: number, lang: Language): string {
-  const formatted = new Intl.NumberFormat(lang === 'ar' ? 'ar-SA' : 'en-US', {
+  const formatted = new Intl.NumberFormat(lang === 'ar' ? 'ar-EG' : 'en-US', {
     style: 'currency',
-    currency: 'SAR',
+    currency: 'EGP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price);
