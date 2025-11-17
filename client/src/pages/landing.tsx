@@ -76,6 +76,7 @@ export default function Landing() {
               size="lg"
               className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-8 py-6 text-lg rounded-lg shadow-xl"
               data-testid="button-start-consultation"
+              onClick={() => window.location.href = '/booking'}
             >
               {t("hero.cta.primary")}
             </Button>
@@ -84,6 +85,10 @@ export default function Landing() {
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 backdrop-blur-md px-8 py-6 text-lg rounded-lg"
               data-testid="button-learn-more"
+              onClick={() => {
+                const featuresSection = document.querySelector('section:nth-of-type(3)');
+                featuresSection?.scrollIntoView({ behavior: 'smooth' });
+              }}
             >
               {t("hero.cta.secondary")}
             </Button>
@@ -217,6 +222,7 @@ export default function Landing() {
             size="lg"
             className="bg-accent hover:bg-accent/90 text-accent-foreground font-bold px-12 py-6 text-lg rounded-lg shadow-xl"
             data-testid="button-cta-consultation"
+            onClick={() => window.location.href = '/booking'}
           >
             احجز استشارتك الآن
           </Button>

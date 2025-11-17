@@ -154,6 +154,11 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/booking">
+          <Suspense fallback={<PageLoadingFallback />}>
+            <ClientBooking />
+          </Suspense>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     );

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, queryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,8 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   CheckCircle2,
   Calendar as CalendarIcon,
@@ -63,26 +62,23 @@ export default function ClientBooking() {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [bookingReference, setBookingReference] = useState<string>("");
   const { toast } = useToast();
-  const { user } = useAuth();
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingSchema),
     defaultValues: {
-      customerName: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
-      customerEmail: user?.email || '',
-      customerPhone: user?.phone || '',
+      customerName: '',
+      customerEmail: '',
+      customerPhone: '',
       message: '',
     },
   });
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
-      return apiRequest("/api/consultations/bookings", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const res = await apiRequest("POST", "/api/consultations/bookings/public", data);
+      return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setBookingReference(data.id);
       setStep(5);
       toast({

@@ -315,7 +315,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ==================== CONSULTATION BOOKING ROUTES ====================
   
-  // Create consultation booking with validation
+  // Public consultation booking endpoint (no authentication required)
+  app.post('/api/consultations/bookings/public', async (req: any, res) => {
+    try {
+      // Validate time slot (2-10 PM)
+      const allowedTimes = ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
+      if (!allowedTimes.includes(req.body.preferredTime)) {
+        return res.status(400).json({ 
+          message: "Invalid time slot. Please select a time between 2 PM and 10 PM." 
+        });
+      }
+      
+      // Validate date is in the future
+      const preferredDate = new Date(req.body.preferredDate);
+      if (preferredDate <= new Date()) {
+        return res.status(400).json({ 
+          message: "Please select a future date for your consultation." 
+        });
+      }
+      
+      // Check if date is Friday (day 5)
+      if (preferredDate.getDay() === 5) {
+        return res.status(400).json({ 
+          message: "Consultations are not available on Fridays. Please select another day." 
+        });
+      }
+      
+      // Create booking with Zod validation
+      const bookingSchema = z.object({
+        customerName: z.string().min(2, "Name must be at least 2 characters"),
+        customerEmail: z.string().email("Invalid email format"),
+        customerPhone: z.string().min(10, "Invalid phone number"),
+        preferredDate: z.date(),
+        preferredTime: z.string(),
+        message: z.string().optional(),
+      });
+      
+      const validatedData = bookingSchema.parse({
+        ...req.body,
+        preferredDate,
+      });
+      
+      // Create a temporary/guest user ID or use a default placeholder
+      const bookingData = {
+        ...validatedData,
+        userId: 'guest-' + Date.now(), // Temporary guest user ID
+      };
+      
+      const booking = await storage.createConsultationBooking(bookingData);
+      res.json(booking);
+    } catch (error: any) {
+      console.error("Error creating public consultation booking:", error);
+      res.status(400).json({ message: error.message || "Failed to create booking" });
+    }
+  });
+
+  // Create consultation booking with validation (authenticated users)
   app.post('/api/consultations/bookings', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
