@@ -72,6 +72,20 @@ interface PaginatedResponse {
   };
 }
 
+const getContactMethodLabel = (method: string | null | undefined): string => {
+  if (!method) return 'غير محدد';
+  
+  const contactMethods: Record<string, string> = {
+    'in_person': 'مقابلة شخصية',
+    'phone_call': 'مكالمة',
+    'video': 'فيديو',
+    'whatsapp': 'واتساب',
+    'email': 'ايميل'
+  };
+  
+  return contactMethods[method] || method;
+};
+
 export default function AdminConsultations() {
   const [page, setPage] = useState(1);
   const [selectedBooking, setSelectedBooking] = useState<ConsultationBooking | null>(null);
@@ -795,7 +809,7 @@ export default function AdminConsultations() {
                                         {selectedBooking.preferredContactMethod && (
                                           <div className="space-y-1">
                                             <div className="text-sm text-muted-foreground">وسيلة التواصل المفضلة:</div>
-                                            <Badge variant="secondary" data-testid="detail-contact-method">{selectedBooking.preferredContactMethod}</Badge>
+                                            <Badge variant="secondary" data-testid="detail-contact-method">{getContactMethodLabel(selectedBooking.preferredContactMethod)}</Badge>
                                           </div>
                                         )}
                                         <div className="space-y-1">

@@ -7,13 +7,6 @@ import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
 
-// Rate limiting for API endpoints
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
-  message: "Too many requests from this IP, please try again later.",
-});
-
 // Stricter rate limiting for admin authentication
 const adminAuthLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -31,11 +24,13 @@ const requireAdminSession = (req: any, res: any, next: any) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
+  // Auth and CSRF middleware (CSRF is now initialized inside setupAuth)
   await setupAuth(app);
 
-  // Apply rate limiting to all API routes
-  app.use("/api", apiLimiter);
+  // CSRF token endpoint
+  app.get('/api/csrf-token', (req: any, res) => {
+    res.json({ csrfToken: req.csrfToken() });
+  });
 
   // ==================== AUTH ROUTES ====================
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

@@ -6,6 +6,7 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
+import csurf from "csurf";
 import { storage } from "./storage";
 
 const getOidcConfig = memoize(
@@ -67,6 +68,13 @@ export async function setupAuth(app: Express) {
   app.use(getSession());
   app.use(passport.initialize());
   app.use(passport.session());
+
+  // CSRF Protection - applied immediately after session middleware
+  const csrfProtection = csurf({ 
+    cookie: false,
+    sessionKey: 'session'
+  });
+  app.use('/api', csrfProtection);
 
   const config = await getOidcConfig();
 

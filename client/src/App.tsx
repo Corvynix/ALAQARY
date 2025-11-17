@@ -11,6 +11,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SkipToContent } from "@/components/skip-to-content";
+import { CookieConsent } from "@/components/CookieConsent";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
@@ -39,6 +40,8 @@ const AdminConsultations = lazy(() => import("@/pages/admin-consultations"));
 const DeveloperProperties = lazy(() => import("@/pages/developer-properties"));
 const DeveloperLeads = lazy(() => import("@/pages/developer-leads"));
 const DeveloperTrustScore = lazy(() => import("@/pages/developer-trust-score"));
+const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
+const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
 
 // Loading fallback component for suspense boundaries
 function PageLoadingFallback() {
@@ -159,6 +162,16 @@ function Router() {
             <ClientBooking />
           </Suspense>
         </Route>
+        <Route path="/privacy-policy">
+          <Suspense fallback={<PageLoadingFallback />}>
+            <PrivacyPolicy />
+          </Suspense>
+        </Route>
+        <Route path="/terms-of-service">
+          <Suspense fallback={<PageLoadingFallback />}>
+            <TermsOfService />
+          </Suspense>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     );
@@ -229,6 +242,7 @@ export default function App() {
           <TooltipProvider>
             <Router />
             <Toaster />
+            <CookieConsent />
           </TooltipProvider>
         </ThemeProvider>
       </I18nProvider>

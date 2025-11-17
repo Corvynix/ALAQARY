@@ -901,6 +901,7 @@ export default function ClientBooking() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="in_person" data-testid="option-in-person">مقابلة شخصية</SelectItem>
                             <SelectItem value="phone_call" data-testid="option-phone">مكالمة</SelectItem>
                             <SelectItem value="video" data-testid="option-video">فيديو</SelectItem>
                             <SelectItem value="whatsapp" data-testid="option-whatsapp">واتساب</SelectItem>
