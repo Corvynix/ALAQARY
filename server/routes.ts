@@ -209,7 +209,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Create default profile if doesn't exist
         const newProfile = await storage.createBuyerProfile({
           userId,
-          profileCompletion: 0,
         });
         return res.json(newProfile);
       }
@@ -227,15 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const updates = req.body;
       
-      // Calculate profile completion
-      const fields = ['budget', 'preferredRegions', 'preferredPropertyTypes', 'riskTolerance', 'investmentGoal'];
-      const filledFields = fields.filter(f => updates[f] && (Array.isArray(updates[f]) ? updates[f].length > 0 : true));
-      const completion = Math.round((filledFields.length / fields.length) * 100);
-      
-      const profile = await storage.updateBuyerProfile(userId, {
-        ...updates,
-        profileCompletion: completion,
-      });
+      const profile = await storage.updateBuyerProfile(userId, updates);
       
       res.json(profile);
     } catch (error) {
@@ -453,23 +444,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/admin/users', requireAdminSession, async (req, res) => {
     try {
       const userData = upsertUserSchema.parse(req.body);
-      const user = await storage.createUser(userData);
+      const user = await storage.upsertUser(userData);
       res.json(user);
     } catch (error: any) {
       console.error("Error creating user:", error);
       res.status(400).json({ message: error.message || "Failed to create user" });
-    }
-  });
-
-  // Delete user (admin only)
-  app.delete('/api/admin/users/:id', requireAdminSession, async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deleteUser(id);
-      res.json({ message: "User deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 

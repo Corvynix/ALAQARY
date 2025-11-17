@@ -143,9 +143,44 @@ export const consultations = pgTable("consultations", {
 export const consultationBookings = pgTable("consultation_bookings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Basic Customer Data
   customerName: varchar("customer_name", { length: 255 }).notNull(),
   customerEmail: varchar("customer_email", { length: 255 }).notNull(),
   customerPhone: varchar("customer_phone", { length: 50 }).notNull(),
+  country: varchar("country", { length: 100 }),
+  city: varchar("city", { length: 100 }),
+  area: varchar("area", { length: 100 }),
+  age: integer("age"),
+  
+  // Client Goals
+  propertyType: varchar("property_type", { length: 100 }),
+  investmentGoal: varchar("investment_goal", { length: 255 }),
+  isFirstTime: boolean("is_first_time"),
+  cityPreference: varchar("city_preference", { length: 100 }),
+  areaPreference: varchar("area_preference", { length: 100 }),
+  
+  // Budget Information
+  maxBudget: decimal("max_budget", { precision: 12, scale: 2 }),
+  minBudget: decimal("min_budget", { precision: 12, scale: 2 }),
+  paymentPreference: varchar("payment_preference", { length: 50 }),
+  installmentDuration: varchar("installment_duration", { length: 50 }),
+  
+  // Timing & Flexibility
+  availablePeriod: varchar("available_period", { length: 100 }),
+  flexibility: varchar("flexibility", { length: 100 }),
+  decisionReadiness: varchar("decision_readiness", { length: 100 }),
+  
+  // Psychological Profile
+  riskTolerance: varchar("risk_tolerance", { length: 50 }),
+  priorities: text("priorities").array().default(sql`ARRAY[]::text[]`),
+  constraints: text("constraints"),
+  
+  // Consultation Details
+  consultationFee: decimal("consultation_fee", { precision: 10, scale: 2 }).default('200').notNull(),
+  preferredContactMethod: varchar("preferred_contact_method", { length: 50 }),
+  
+  // Original fields
   preferredDate: timestamp("preferred_date").notNull(),
   preferredTime: varchar("preferred_time", { length: 10 }).notNull(),
   message: text("message"),
