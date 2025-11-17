@@ -29,6 +29,7 @@ import {
   BarChart3,
   Wallet,
   Gift,
+  Calendar,
 } from "lucide-react";
 
 export function AppSidebar() {
@@ -41,6 +42,11 @@ export function AppSidebar() {
       title: t("nav.dashboard"),
       url: "/admin",
       icon: LayoutDashboard,
+    },
+    {
+      title: "حجوزات الاستشارات",
+      url: "/admin/consultations",
+      icon: Calendar,
     },
     {
       title: "تحميل بيانات السوق",
@@ -69,6 +75,11 @@ export function AppSidebar() {
       title: t("nav.dashboard"),
       url: "/client",
       icon: LayoutDashboard,
+    },
+    {
+      title: "حجز استشارة",
+      url: "/client/book-consultation",
+      icon: Calendar,
     },
     {
       title: t("nav.consultations"),

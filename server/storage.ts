@@ -4,6 +4,7 @@ import {
   properties,
   buyerProfiles,
   consultations,
+  consultationBookings,
   payments,
   contracts,
   commissions,
@@ -11,6 +12,8 @@ import {
   behavioralTracking,
   referrals,
   notifications,
+  adminCredentials,
+  cmsContent,
   type User,
   type UpsertUser,
   type Developer,
@@ -21,6 +24,8 @@ import {
   type InsertBuyerProfile,
   type Consultation,
   type InsertConsultation,
+  type ConsultationBooking,
+  type InsertConsultationBooking,
   type Payment,
   type InsertPayment,
   type Contract,
@@ -35,21 +40,50 @@ import {
   type InsertReferral,
   type Notification,
   type InsertNotification,
+  type AdminCredential,
+  type InsertAdminCredential,
+  type CmsContent,
+  type InsertCmsContent,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, or, ilike, count } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+function generateCustomerCode(role: string, existingCode?: string | null): string {
+  if (existingCode) return existingCode;
+  
+  const prefixes: { [key: string]: string } = {
+    'admin': 'ADM',
+    'client': 'CLT',
+    'developer': 'DEV'
+  };
+  
+  const prefix = prefixes[role] || 'USR';
+  const randomNum = Math.floor(10000 + Math.random() * 90000);
+  return `${prefix}-${randomNum}`;
+}
 
 export interface IStorage {
   // User operations
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  getAllUsers(): Promise<User[]>;
+  getAllUsers(page?: number, limit?: number, search?: string, role?: string): Promise<PaginatedResponse<User>>;
   
   // Developer operations
   getDeveloperByUserId(userId: string): Promise<Developer | undefined>;
   createDeveloper(developer: InsertDeveloper): Promise<Developer>;
   updateDeveloperTrustScore(id: string, score: number): Promise<void>;
-  getAllDevelopers(): Promise<Developer[]>;
+  getAllDevelopers(page?: number, limit?: number, search?: string): Promise<PaginatedResponse<Developer>>;
   
   // Property operations
   getProperty(id: string): Promise<Property | undefined>;
@@ -70,10 +104,18 @@ export interface IStorage {
   createConsultation(consultation: InsertConsultation): Promise<Consultation>;
   updateConsultation(id: string, updates: Partial<Consultation>): Promise<Consultation>;
   
+  // Consultation Booking operations
+  createConsultationBooking(booking: InsertConsultationBooking): Promise<ConsultationBooking>;
+  getAllConsultationBookings(page?: number, limit?: number): Promise<PaginatedResponse<ConsultationBooking>>;
+  getUserConsultationBookings(userId: string): Promise<ConsultationBooking[]>;
+  updateBookingPaymentStatus(id: string, status: string, phone?: string): Promise<void>;
+  updateBookingNotes(id: string, notes: string): Promise<void>;
+  updateBookingStatus(id: string, status: string): Promise<void>;
+  
   // Payment operations
   getPayment(id: string): Promise<Payment | undefined>;
   getPaymentsByUser(userId: string): Promise<Payment[]>;
-  getAllPayments(): Promise<Payment[]>;
+  getAllPayments(page?: number, limit?: number): Promise<PaginatedResponse<Payment>>;
   createPayment(payment: InsertPayment): Promise<Payment>;
   updatePaymentStatus(id: string, status: string): Promise<void>;
   
@@ -105,6 +147,25 @@ export interface IStorage {
   getNotificationsByUser(userId: string): Promise<Notification[]>;
   createNotification(notification: InsertNotification): Promise<Notification>;
   markNotificationAsRead(id: string): Promise<void>;
+  
+  // Admin Credentials operations
+  getAdminByUsername(username: string): Promise<AdminCredential | undefined>;
+  createAdminCredential(credential: InsertAdminCredential): Promise<AdminCredential>;
+  updateAdminPassword(username: string, newPasswordHash: string): Promise<void>;
+  verifyAdminPassword(username: string, password: string): Promise<boolean>;
+  
+  // CMS Content operations
+  getCmsContentByKey(key: string): Promise<CmsContent | undefined>;
+  getAllCmsContent(): Promise<CmsContent[]>;
+  upsertCmsContent(content: InsertCmsContent): Promise<CmsContent>;
+  deleteCmsContent(key: string): Promise<void>;
+  
+  // Update notes for entities
+  updateUserNotes(id: string, notes: string): Promise<void>;
+  updateDeveloperNotes(id: string, notes: string): Promise<void>;
+  updatePropertyNotes(id: string, notes: string): Promise<void>;
+  updateBuyerProfileNotes(userId: string, notes: string): Promise<void>;
+  updateMarketDataNotes(id: string, notes: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -115,13 +176,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    const customerCode = generateCustomerCode(userData.role || 'client', userData.customerCode);
+    
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values({ ...userData, customerCode })
       .onConflictDoUpdate({
         target: users.id,
         set: {
           ...userData,
+          customerCode,
           updatedAt: new Date(),
         },
       })
@@ -129,8 +193,59 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getAllUsers(): Promise<User[]> {
-    return db.select().from(users).orderBy(desc(users.createdAt));
+  async getAllUsers(
+    page: number = 1,
+    limit: number = 20,
+    search?: string,
+    role?: string
+  ): Promise<PaginatedResponse<User>> {
+    const offset = (page - 1) * limit;
+    
+    const conditions = [];
+    
+    if (search) {
+      conditions.push(
+        or(
+          ilike(users.firstName, `%${search}%`),
+          ilike(users.lastName, `%${search}%`),
+          ilike(users.email, `%${search}%`),
+          ilike(users.customerCode, `%${search}%`)
+        )
+      );
+    }
+    
+    if (role && role !== 'all') {
+      conditions.push(eq(users.role, role));
+    }
+    
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    
+    const [data, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(users)
+        .where(whereClause)
+        .orderBy(desc(users.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(users)
+        .where(whereClause)
+    ]);
+    
+    const total = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(Number(total) / limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total: Number(total),
+        totalPages,
+      },
+    };
   }
 
   // Developer operations
@@ -150,8 +265,46 @@ export class DatabaseStorage implements IStorage {
       .where(eq(developers.id, id));
   }
 
-  async getAllDevelopers(): Promise<Developer[]> {
-    return db.select().from(developers).orderBy(desc(developers.createdAt));
+  async getAllDevelopers(
+    page: number = 1,
+    limit: number = 20,
+    search?: string
+  ): Promise<PaginatedResponse<Developer>> {
+    const offset = (page - 1) * limit;
+    
+    const whereClause = search
+      ? or(
+          ilike(developers.companyName, `%${search}%`),
+          ilike(developers.licenseNumber, `%${search}%`)
+        )
+      : undefined;
+    
+    const [data, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(developers)
+        .where(whereClause)
+        .orderBy(desc(developers.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(developers)
+        .where(whereClause)
+    ]);
+    
+    const total = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(Number(total) / limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total: Number(total),
+        totalPages,
+      },
+    };
   }
 
   // Property operations
@@ -233,6 +386,75 @@ export class DatabaseStorage implements IStorage {
     return consultation;
   }
 
+  // Consultation Booking operations
+  async createConsultationBooking(bookingData: InsertConsultationBooking): Promise<ConsultationBooking> {
+    const [booking] = await db.insert(consultationBookings).values(bookingData).returning();
+    return booking;
+  }
+
+  async getAllConsultationBookings(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<PaginatedResponse<ConsultationBooking>> {
+    const offset = (page - 1) * limit;
+    
+    const [data, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(consultationBookings)
+        .orderBy(desc(consultationBookings.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(consultationBookings)
+    ]);
+    
+    const total = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(Number(total) / limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total: Number(total),
+        totalPages,
+      },
+    };
+  }
+
+  async getUserConsultationBookings(userId: string): Promise<ConsultationBooking[]> {
+    return db.select().from(consultationBookings)
+      .where(eq(consultationBookings.userId, userId))
+      .orderBy(desc(consultationBookings.createdAt));
+  }
+
+  async updateBookingPaymentStatus(id: string, status: string, phone?: string): Promise<void> {
+    const updates: any = {
+      paymentStatus: status,
+      updatedAt: new Date(),
+    };
+    if (phone) {
+      updates.paymentPhone = phone;
+    }
+    await db.update(consultationBookings)
+      .set(updates)
+      .where(eq(consultationBookings.id, id));
+  }
+
+  async updateBookingNotes(id: string, notes: string): Promise<void> {
+    await db.update(consultationBookings)
+      .set({ notes, updatedAt: new Date() })
+      .where(eq(consultationBookings.id, id));
+  }
+
+  async updateBookingStatus(id: string, status: string): Promise<void> {
+    await db.update(consultationBookings)
+      .set({ bookingStatus: status as any, updatedAt: new Date() })
+      .where(eq(consultationBookings.id, id));
+  }
+
   // Payment operations
   async getPayment(id: string): Promise<Payment | undefined> {
     const [payment] = await db.select().from(payments).where(eq(payments.id, id));
@@ -245,8 +467,36 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(payments.createdAt));
   }
 
-  async getAllPayments(): Promise<Payment[]> {
-    return db.select().from(payments).orderBy(desc(payments.createdAt));
+  async getAllPayments(
+    page: number = 1,
+    limit: number = 20
+  ): Promise<PaginatedResponse<Payment>> {
+    const offset = (page - 1) * limit;
+    
+    const [data, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(payments)
+        .orderBy(desc(payments.createdAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: count() })
+        .from(payments)
+    ]);
+    
+    const total = totalResult[0]?.count || 0;
+    const totalPages = Math.ceil(Number(total) / limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total: Number(total),
+        totalPages,
+      },
+    };
   }
 
   async createPayment(paymentData: InsertPayment): Promise<Payment> {
@@ -353,6 +603,94 @@ export class DatabaseStorage implements IStorage {
     await db.update(notifications)
       .set({ read: true })
       .where(eq(notifications.id, id));
+  }
+
+  // Admin Credentials operations
+  async getAdminByUsername(username: string): Promise<AdminCredential | undefined> {
+    const [admin] = await db.select().from(adminCredentials).where(eq(adminCredentials.username, username));
+    return admin;
+  }
+
+  async createAdminCredential(credentialData: InsertAdminCredential): Promise<AdminCredential> {
+    const [credential] = await db.insert(adminCredentials).values(credentialData).returning();
+    return credential;
+  }
+
+  async updateAdminPassword(username: string, newPasswordHash: string): Promise<void> {
+    await db.update(adminCredentials)
+      .set({ 
+        passwordHash: newPasswordHash,
+        mustChangePassword: false,
+        lastPasswordChange: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(adminCredentials.username, username));
+  }
+
+  async verifyAdminPassword(username: string, password: string): Promise<boolean> {
+    const admin = await this.getAdminByUsername(username);
+    if (!admin) return false;
+    return bcrypt.compare(password, admin.passwordHash);
+  }
+
+  // CMS Content operations
+  async getCmsContentByKey(key: string): Promise<CmsContent | undefined> {
+    const [content] = await db.select().from(cmsContent).where(eq(cmsContent.key, key));
+    return content;
+  }
+
+  async getAllCmsContent(): Promise<CmsContent[]> {
+    return db.select().from(cmsContent).orderBy(desc(cmsContent.updatedAt));
+  }
+
+  async upsertCmsContent(contentData: InsertCmsContent): Promise<CmsContent> {
+    const [content] = await db
+      .insert(cmsContent)
+      .values(contentData)
+      .onConflictDoUpdate({
+        target: cmsContent.key,
+        set: {
+          ...contentData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return content;
+  }
+
+  async deleteCmsContent(key: string): Promise<void> {
+    await db.delete(cmsContent).where(eq(cmsContent.key, key));
+  }
+
+  // Update notes for entities
+  async updateUserNotes(id: string, notes: string): Promise<void> {
+    await db.update(users)
+      .set({ notes, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async updateDeveloperNotes(id: string, notes: string): Promise<void> {
+    await db.update(developers)
+      .set({ notes, updatedAt: new Date() })
+      .where(eq(developers.id, id));
+  }
+
+  async updatePropertyNotes(id: string, notes: string): Promise<void> {
+    await db.update(properties)
+      .set({ notes, updatedAt: new Date() })
+      .where(eq(properties.id, id));
+  }
+
+  async updateBuyerProfileNotes(userId: string, notes: string): Promise<void> {
+    await db.update(buyerProfiles)
+      .set({ notes, updatedAt: new Date() })
+      .where(eq(buyerProfiles.userId, userId));
+  }
+
+  async updateMarketDataNotes(id: string, notes: string): Promise<void> {
+    await db.update(marketData)
+      .set({ notes })
+      .where(eq(marketData.id, id));
   }
 }
 

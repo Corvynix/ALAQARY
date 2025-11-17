@@ -47,6 +47,29 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Fail-fast guard for admin initialization security (production only)
+  const isProduction = process.env.NODE_ENV === 'production';
+  const adminInitSecret = process.env.ADMIN_INIT_SECRET;
+  const forbiddenPlaceholders = ['CHANGE_ME_IN_PRODUCTION', 'admin', 'secret'];
+  
+  if (isProduction && (!adminInitSecret || forbiddenPlaceholders.includes(adminInitSecret))) {
+    console.error('\n============================================');
+    console.error('FATAL ERROR: Invalid ADMIN_INIT_SECRET');
+    console.error('============================================');
+    console.error('');
+    console.error('The ADMIN_INIT_SECRET environment variable must be set to a secure, unique value in production.');
+    console.error('This secret is required to initialize the admin account securely.');
+    console.error('');
+    console.error('To fix this:');
+    console.error('1. Set ADMIN_INIT_SECRET in your environment variables to a strong, random value');
+    console.error('2. Do NOT use placeholder values like "CHANGE_ME_IN_PRODUCTION", "admin", or "secret"');
+    console.error('3. Generate a secure secret: use a password generator or run: openssl rand -base64 32');
+    console.error('');
+    console.error('Example: ADMIN_INIT_SECRET=your-secure-random-secret-here');
+    console.error('============================================\n');
+    process.exit(1);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

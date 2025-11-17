@@ -2,8 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, isAdmin, isDeveloper } from "./replitAuth";
-import { insertPaymentSchema, insertConsultationSchema, insertMarketDataSchema, insertBehavioralTrackingSchema, insertPropertySchema } from "@shared/schema";
+import { insertPaymentSchema, insertConsultationSchema, insertConsultationBookingSchema, insertMarketDataSchema, insertBehavioralTrackingSchema, insertPropertySchema, upsertUserSchema } from "@shared/schema";
+import { z } from "zod";
 import rateLimit from "express-rate-limit";
+import bcrypt from "bcryptjs";
 
 // Rate limiting for API endpoints
 const apiLimiter = rateLimit({
@@ -11,6 +13,22 @@ const apiLimiter = rateLimit({
   max: 100,
   message: "Too many requests from this IP, please try again later.",
 });
+
+// Stricter rate limiting for admin authentication
+const adminAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5,
+  message: "Too many login attempts, please try again later.",
+});
+
+// Middleware to require admin session
+const requireAdminSession = (req: any, res: any, next: any) => {
+  const adminUser = req.session?.adminUser;
+  if (!adminUser) {
+    return res.status(401).json({ message: "Admin authentication required" });
+  }
+  next();
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -29,6 +47,154 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
+  });
+
+  // ==================== ADMIN AUTH ROUTES ====================
+  
+  // Initialize default admin account (protected with initialization secret)
+  app.post('/api/admin/init', adminAuthLimiter, async (req, res) => {
+    try {
+      const expectedSecret = process.env.ADMIN_INIT_SECRET;
+      
+      if (!expectedSecret) {
+        console.error("ADMIN_INIT_SECRET environment variable not set");
+        return res.status(500).json({ message: "Server misconfiguration - admin initialization unavailable" });
+      }
+      
+      const { initSecret } = req.body;
+      
+      if (initSecret !== expectedSecret) {
+        return res.status(401).json({ message: "Invalid initialization secret" });
+      }
+      
+      const existingAdmin = await storage.getAdminByUsername('admin');
+      
+      if (existingAdmin) {
+        return res.status(400).json({ message: "Admin already initialized" });
+      }
+      
+      const defaultPassword = 'admin';
+      const passwordHash = await bcrypt.hash(defaultPassword, 10);
+      
+      await storage.createAdminCredential({
+        username: 'admin',
+        passwordHash,
+        mustChangePassword: true,
+      });
+      
+      res.json({ message: "Admin account created successfully" });
+    } catch (error) {
+      console.error("Error initializing admin:", error);
+      res.status(500).json({ message: "Failed to initialize admin" });
+    }
+  });
+  
+  // Admin login
+  app.post('/api/admin/login', adminAuthLimiter, async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password required" });
+      }
+      
+      const admin = await storage.getAdminByUsername(username);
+      
+      if (!admin) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      const isValid = await storage.verifyAdminPassword(username, password);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // Regenerate session to prevent session fixation attacks
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Error regenerating session:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        
+        (req.session as any).adminUser = {
+          username: admin.username,
+          mustChangePassword: admin.mustChangePassword,
+        };
+        
+        req.session.save((err) => {
+          if (err) {
+            console.error("Error saving session:", err);
+            return res.status(500).json({ message: "Login failed" });
+          }
+          
+          res.json({
+            username: admin.username,
+            mustChangePassword: admin.mustChangePassword,
+          });
+        });
+      });
+    } catch (error) {
+      console.error("Error during admin login:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+  
+  // Check admin session
+  app.get('/api/admin/session', async (req, res) => {
+    const adminUser = (req.session as any).adminUser;
+    
+    if (!adminUser) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    
+    res.json(adminUser);
+  });
+  
+  // Change admin password
+  app.post('/api/admin/change-password', adminAuthLimiter, async (req, res) => {
+    try {
+      const adminUser = (req.session as any).adminUser;
+      
+      if (!adminUser) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      
+      const { currentPassword, newPassword } = req.body;
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current and new passwords required" });
+      }
+      
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters" });
+      }
+      
+      const isValid = await storage.verifyAdminPassword(adminUser.username, currentPassword);
+      
+      if (!isValid) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+      
+      const newPasswordHash = await bcrypt.hash(newPassword, 10);
+      await storage.updateAdminPassword(adminUser.username, newPasswordHash);
+      
+      (req.session as any).adminUser = {
+        username: adminUser.username,
+        mustChangePassword: false,
+      };
+      
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+  
+  // Admin logout
+  app.post('/api/admin/logout', async (req, res) => {
+    (req.session as any).adminUser = null;
+    res.json({ message: "Logged out successfully" });
   });
 
   // ==================== CLIENT ROUTES ====================
@@ -147,24 +313,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==================== CONSULTATION BOOKING ROUTES ====================
+  
+  // Create consultation booking with validation
+  app.post('/api/consultations/bookings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // Validate time slot (2-10 PM)
+      const allowedTimes = ['14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'];
+      if (!allowedTimes.includes(req.body.preferredTime)) {
+        return res.status(400).json({ 
+          message: "Invalid time slot. Please select a time between 2 PM and 10 PM." 
+        });
+      }
+      
+      // Validate date is in the future
+      const preferredDate = new Date(req.body.preferredDate);
+      if (preferredDate <= new Date()) {
+        return res.status(400).json({ 
+          message: "Please select a future date for your consultation." 
+        });
+      }
+      
+      // Check if date is Friday (day 5)
+      if (preferredDate.getDay() === 5) {
+        return res.status(400).json({ 
+          message: "Consultations are not available on Fridays. Please select another day." 
+        });
+      }
+      
+      // Create booking with Zod validation
+      const bookingSchema = insertConsultationBookingSchema.extend({
+        customerName: z.string().min(2, "Name must be at least 2 characters"),
+        customerEmail: z.string().email("Invalid email format"),
+        customerPhone: z.string().min(10, "Invalid phone number"),
+      });
+      
+      const bookingData = bookingSchema.parse({
+        ...req.body,
+        userId,
+        preferredDate,
+      });
+      
+      const booking = await storage.createConsultationBooking(bookingData);
+      res.json(booking);
+    } catch (error: any) {
+      console.error("Error creating consultation booking:", error);
+      res.status(400).json({ message: error.message || "Failed to create booking" });
+    }
+  });
+  
+  // Get user's consultation bookings
+  app.get('/api/consultations/bookings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const bookings = await storage.getUserConsultationBookings(userId);
+      res.json(bookings);
+    } catch (error) {
+      console.error("Error fetching consultation bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
   // ==================== ADMIN ROUTES ====================
   
   // Get all users
-  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req, res) => {
+  app.get('/api/admin/users', requireAdminSession, async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      res.json(users);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const search = req.query.search as string;
+      const role = req.query.role as string;
+      
+      const result = await storage.getAllUsers(page, limit, search, role);
+      res.json(result);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
-  // Get all developers
-  app.get('/api/admin/developers', isAuthenticated, isAdmin, async (req, res) => {
+  // Create user (admin only)
+  app.post('/api/admin/users', requireAdminSession, async (req, res) => {
     try {
-      const developers = await storage.getAllDevelopers();
-      res.json(developers);
+      const userData = upsertUserSchema.parse(req.body);
+      const user = await storage.createUser(userData);
+      res.json(user);
+    } catch (error: any) {
+      console.error("Error creating user:", error);
+      res.status(400).json({ message: error.message || "Failed to create user" });
+    }
+  });
+
+  // Delete user (admin only)
+  app.delete('/api/admin/users/:id', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteUser(id);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Get all developers
+  app.get('/api/admin/developers', requireAdminSession, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const search = req.query.search as string;
+      
+      const result = await storage.getAllDevelopers(page, limit, search);
+      res.json(result);
     } catch (error) {
       console.error("Error fetching developers:", error);
       res.status(500).json({ message: "Failed to fetch developers" });
@@ -172,18 +434,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all payments
-  app.get('/api/admin/payments', isAuthenticated, isAdmin, async (req, res) => {
+  app.get('/api/admin/payments', requireAdminSession, async (req, res) => {
     try {
-      const payments = await storage.getAllPayments();
-      res.json(payments);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const result = await storage.getAllPayments(page, limit);
+      res.json(result);
     } catch (error) {
       console.error("Error fetching payments:", error);
       res.status(500).json({ message: "Failed to fetch payments" });
     }
   });
 
+  // Get all consultation bookings (admin, paginated)
+  app.get('/api/admin/consultations/bookings', requireAdminSession, async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      const result = await storage.getAllConsultationBookings(page, limit);
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching consultation bookings:", error);
+      res.status(500).json({ message: "Failed to fetch bookings" });
+    }
+  });
+
+  // Update consultation booking payment status (admin only)
+  app.put('/api/admin/consultations/bookings/:id/payment', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, phone } = req.body;
+      
+      await storage.updateBookingPaymentStatus(id, status, phone);
+      res.json({ message: "Payment status updated successfully" });
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+      res.status(500).json({ message: "Failed to update payment status" });
+    }
+  });
+
+  // Update consultation booking notes (admin only)
+  app.put('/api/admin/consultations/bookings/:id/notes', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { notes } = req.body;
+      
+      await storage.updateBookingNotes(id, notes || '');
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      console.error("Error updating notes:", error);
+      res.status(500).json({ message: "Failed to update notes" });
+    }
+  });
+
+  // Update consultation booking status (admin only)
+  app.put('/api/admin/consultations/bookings/:id/status', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      await storage.updateBookingStatus(id, status);
+      res.json({ message: "Booking status updated successfully" });
+    } catch (error) {
+      console.error("Error updating booking status:", error);
+      res.status(500).json({ message: "Failed to update booking status" });
+    }
+  });
+
   // Get all market data
-  app.get('/api/admin/market-data', isAuthenticated, isAdmin, async (req, res) => {
+  app.get('/api/admin/market-data', requireAdminSession, async (req, res) => {
     try {
       const data = await storage.getAllMarketData();
       res.json(data);
@@ -194,7 +515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all behavioral tracking data
-  app.get('/api/admin/behavioral-tracking', isAuthenticated, isAdmin, async (req, res) => {
+  app.get('/api/admin/behavioral-tracking', requireAdminSession, async (req, res) => {
     try {
       const tracking = await storage.getAllBehavioralTracking();
       res.json(tracking);
@@ -205,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload market data (JSON)
-  app.post('/api/admin/market-data/upload', isAuthenticated, isAdmin, async (req, res) => {
+  app.post('/api/admin/market-data/upload', requireAdminSession, async (req, res) => {
     try {
       const { jsonData } = req.body;
       
@@ -386,6 +707,141 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching market data:", error);
       res.status(500).json({ message: "Failed to fetch market data" });
+    }
+  });
+
+  // ==================== NOTES CRUD OPERATIONS ====================
+  
+  // Update user notes (admin only)
+  app.put('/api/admin/users/:id/notes', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { notes } = req.body;
+      await storage.updateUserNotes(id, notes || '');
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      console.error("Error updating user notes:", error);
+      res.status(500).json({ message: "Failed to update notes" });
+    }
+  });
+  
+  // Update developer notes (admin only)
+  app.put('/api/admin/developers/:id/notes', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { notes } = req.body;
+      await storage.updateDeveloperNotes(id, notes || '');
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      console.error("Error updating developer notes:", error);
+      res.status(500).json({ message: "Failed to update notes" });
+    }
+  });
+  
+  // Update property notes (admin only)
+  app.put('/api/admin/properties/:id/notes', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { notes } = req.body;
+      await storage.updatePropertyNotes(id, notes || '');
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      console.error("Error updating property notes:", error);
+      res.status(500).json({ message: "Failed to update notes" });
+    }
+  });
+  
+  // Update buyer profile notes (admin only)
+  app.put('/api/admin/buyer-profiles/:userId/notes', requireAdminSession, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { notes } = req.body;
+      await storage.updateBuyerProfileNotes(userId, notes || '');
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      console.error("Error updating buyer profile notes:", error);
+      res.status(500).json({ message: "Failed to update notes" });
+    }
+  });
+  
+  // Update market data notes (admin only)
+  app.put('/api/admin/market-data/:id/notes', requireAdminSession, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { notes } = req.body;
+      await storage.updateMarketDataNotes(id, notes || '');
+      res.json({ message: "Notes updated successfully" });
+    } catch (error) {
+      console.error("Error updating market data notes:", error);
+      res.status(500).json({ message: "Failed to update notes" });
+    }
+  });
+
+  // ==================== CMS CONTENT MANAGEMENT ====================
+  
+  // Get all CMS content (admin only)
+  app.get('/api/admin/cms', requireAdminSession, async (req: any, res) => {
+    try {
+      const content = await storage.getAllCmsContent();
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching CMS content:", error);
+      res.status(500).json({ message: "Failed to fetch CMS content" });
+    }
+  });
+  
+  // Get CMS content by key (public)
+  app.get('/api/cms/:key', async (req, res) => {
+    try {
+      const { key } = req.params;
+      const content = await storage.getCmsContentByKey(key);
+      
+      if (!content) {
+        return res.status(404).json({ message: "Content not found" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching CMS content:", error);
+      res.status(500).json({ message: "Failed to fetch content" });
+    }
+  });
+  
+  // Upsert CMS content (admin only)
+  app.put('/api/admin/cms', requireAdminSession, async (req: any, res) => {
+    try {
+      const adminUser = req.session.adminUser;
+      const { key, contentType, contentEn, contentAr, metadata } = req.body;
+      
+      if (!key || !contentType) {
+        return res.status(400).json({ message: "Key and content type are required" });
+      }
+      
+      const content = await storage.upsertCmsContent({
+        key,
+        contentType,
+        contentEn,
+        contentAr,
+        metadata,
+        updatedBy: adminUser.username,
+      });
+      
+      res.json(content);
+    } catch (error: any) {
+      console.error("Error upserting CMS content:", error);
+      res.status(400).json({ message: error.message || "Failed to update content" });
+    }
+  });
+  
+  // Delete CMS content (admin only)
+  app.delete('/api/admin/cms/:key', requireAdminSession, async (req, res) => {
+    try {
+      const { key } = req.params;
+      await storage.deleteCmsContent(key);
+      res.json({ message: "Content deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting CMS content:", error);
+      res.status(500).json({ message: "Failed to delete content" });
     }
   });
 

@@ -23,6 +23,7 @@ export const propertyTypeEnum = pgEnum('property_type', ['apartment', 'villa', '
 export const propertyStatusEnum = pgEnum('property_status', ['available', 'reserved', 'sold', 'off_market']);
 export const riskToleranceEnum = pgEnum('risk_tolerance', ['conservative', 'moderate', 'aggressive']);
 export const notificationTypeEnum = pgEnum('notification_type', ['opportunity', 'payment', 'consultation', 'market_update', 'system']);
+export const bookingStatusEnum = pgEnum('booking_status', ['pending', 'confirmed', 'cancelled']);
 
 // Session storage table (mandatory for Replit Auth)
 export const sessions = pgTable(
@@ -38,12 +39,14 @@ export const sessions = pgTable(
 // Users table with role-based access
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerCode: varchar("customer_code").unique(),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: userRoleEnum("role").notNull().default('client'),
   phone: varchar("phone"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -60,6 +63,7 @@ export const developers = pgTable("developers", {
   successfulDeals: integer("successful_deals").default(0).notNull(),
   complaints: integer("complaints").default(0).notNull(),
   verified: boolean("verified").default(false).notNull(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -88,6 +92,7 @@ export const properties = pgTable("properties", {
   status: propertyStatusEnum("status").default('available').notNull(),
   featured: boolean("featured").default(false).notNull(),
   viewCount: integer("view_count").default(0).notNull(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -111,6 +116,7 @@ export const buyerProfiles = pgTable("buyer_profiles", {
   timeline: varchar("timeline", { length: 100 }),
   additionalPreferences: jsonb("additional_preferences"),
   profileCompletion: integer("profile_completion").default(0).notNull(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -131,6 +137,29 @@ export const consultations = pgTable("consultations", {
 }, (table) => [
   index("idx_consultations_user").on(table.userId),
   index("idx_consultations_status").on(table.status),
+]);
+
+// Consultation Bookings (for scheduling calls/meetings)
+export const consultationBookings = pgTable("consultation_bookings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  customerName: varchar("customer_name", { length: 255 }).notNull(),
+  customerEmail: varchar("customer_email", { length: 255 }).notNull(),
+  customerPhone: varchar("customer_phone", { length: 50 }).notNull(),
+  preferredDate: timestamp("preferred_date").notNull(),
+  preferredTime: varchar("preferred_time", { length: 10 }).notNull(),
+  message: text("message"),
+  paymentStatus: paymentStatusEnum("payment_status").default('pending').notNull(),
+  paymentPhone: varchar("payment_phone", { length: 50 }),
+  bookingStatus: bookingStatusEnum("booking_status").default('pending').notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_consultation_bookings_user").on(table.userId),
+  index("idx_consultation_bookings_date").on(table.preferredDate),
+  index("idx_consultation_bookings_payment_status").on(table.paymentStatus),
+  index("idx_consultation_bookings_booking_status").on(table.bookingStatus),
 ]);
 
 // Payments
@@ -205,6 +234,7 @@ export const marketData = pgTable("market_data", {
   dataSource: varchar("data_source", { length: 100 }),
   validFrom: timestamp("valid_from").notNull(),
   validTo: timestamp("valid_to"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_market_data_region").on(table.region),
@@ -238,6 +268,7 @@ export const referrals = pgTable("referrals", {
   status: varchar("status", { length: 50 }).default('pending').notNull(),
   rewardAmount: decimal("reward_amount", { precision: 10, scale: 2 }),
   rewardClaimed: boolean("reward_claimed").default(false).notNull(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_referrals_referrer").on(table.referrerId),
@@ -255,10 +286,40 @@ export const notifications = pgTable("notifications", {
   messageAr: text("message_ar"),
   link: varchar("link"),
   read: boolean("read").default(false).notNull(),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_notifications_user").on(table.userId),
   index("idx_notifications_read").on(table.read),
+]);
+
+// Admin Credentials
+export const adminCredentials = pgTable("admin_credentials", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").notNull().unique(),
+  passwordHash: varchar("password_hash").notNull(),
+  mustChangePassword: boolean("must_change_password").default(true).notNull(),
+  lastPasswordChange: timestamp("last_password_change"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_admin_username").on(table.username),
+]);
+
+// CMS Content
+export const cmsContent = pgTable("cms_content", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar("key").notNull().unique(),
+  contentType: varchar("content_type", { length: 50 }).notNull(),
+  contentEn: text("content_en"),
+  contentAr: text("content_ar"),
+  metadata: jsonb("metadata"),
+  updatedBy: varchar("updated_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_cms_key").on(table.key),
+  index("idx_cms_type").on(table.contentType),
 ]);
 
 // Relations
@@ -342,6 +403,12 @@ export const insertConsultationSchema = createInsertSchema(consultations).omit({
   updatedAt: true,
 });
 
+export const insertConsultationBookingSchema = createInsertSchema(consultationBookings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertPaymentSchema = createInsertSchema(payments).omit({
   id: true,
   createdAt: true,
@@ -380,6 +447,19 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   read: true,
 });
 
+export const insertAdminCredentialSchema = createInsertSchema(adminCredentials).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastPasswordChange: true,
+});
+
+export const insertCmsContentSchema = createInsertSchema(cmsContent).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -395,6 +475,9 @@ export type BuyerProfile = typeof buyerProfiles.$inferSelect;
 
 export type InsertConsultation = z.infer<typeof insertConsultationSchema>;
 export type Consultation = typeof consultations.$inferSelect;
+
+export type InsertConsultationBooking = z.infer<typeof insertConsultationBookingSchema>;
+export type ConsultationBooking = typeof consultationBookings.$inferSelect;
 
 export type InsertPayment = z.infer<typeof insertPaymentSchema>;
 export type Payment = typeof payments.$inferSelect;
@@ -416,3 +499,9 @@ export type Referral = typeof referrals.$inferSelect;
 
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
+
+export type InsertAdminCredential = z.infer<typeof insertAdminCredentialSchema>;
+export type AdminCredential = typeof adminCredentials.$inferSelect;
+
+export type InsertCmsContent = z.infer<typeof insertCmsContentSchema>;
+export type CmsContent = typeof cmsContent.$inferSelect;
