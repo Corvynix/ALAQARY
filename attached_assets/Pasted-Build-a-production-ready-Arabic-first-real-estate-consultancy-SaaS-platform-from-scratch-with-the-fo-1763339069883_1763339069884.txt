@@ -1,0 +1,53 @@
+Build a production-ready Arabic-first real estate consultancy SaaS platform from scratch with the following specifications:
+
+Core Concept: Passive real estate consultancy and market intelligence. Clients provide their property interests and get AI-driven market insights, risk analysis, and personalized recommendations. The system captures all key market data (via Gemini AI JSON or manual input) and stores it for analytics.
+
+Pricing Model:
+
+Initial consultation fee: 200 EGP to filter serious clients.
+
+Commission: 2% on any deal completed through the platform.
+
+System should allow tracking payments and commissions automatically.
+
+Neuro-Marketing Features:
+
+Behavioral tracking (scroll depth, clicks, time-on-page, hesitation signals) to detect engagement and seriousness.
+
+Trust & authority design: deep blue + gold + white color palette, copywriting to reinforce expertise.
+
+Personalization: Recommendations based on client profile, preferences, risk tolerance.
+
+Scarcity & urgency cues: Limited time opportunities, real-time alerts.
+
+Reward/referral system for clients who bring new leads.
+
+Platform Features:
+
+Role-based Authentication: Admin, Client, Developer using JWT/Replit Auth.
+
+Admin Dashboard: Upload and parse Gemini AI JSON market data, monitor behavioral analytics, developer trust scores, market trends, and client activity.
+
+Client Interface: Interactive consultation forms, AI-assisted buyer profile builder, contract/document upload, market insights, AI-driven recommendations.
+
+Developer Dashboard: Manage property info, track client leads, view trust scores and complaint history.
+
+Smart Matching Engine: Match clients to properties and developers using behavioral data, preferences, risk tolerance, and budget.
+
+Behavioral Micro-Tracking: Track all interactions in GDPR-compliant way.
+
+Contract & Risk Analysis: Upload contracts, parse PDF/Word, detect risks and clauses.
+
+Notifications: Alerts for market changes, opportunities, consultation reminders.
+
+Analytics: Client journey, interaction heatmaps, conversion funnels, trust metrics.
+
+Security: Rate limiting, input validation, secure file handling.
+
+UI/UX:
+
+Fully Arabic-first RTL design, responsive mobile layout, bilingual support (Arabic/English).
+
+Dashboard visuals to convey authority, trust, and high value.
+
+Goal: Maximize client retention, seriousness, and conversion, capturing the entire consultation journey, and generating revenue from consultation fees + successful deal commission

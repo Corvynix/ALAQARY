@@ -1,20 +1,30 @@
 import { sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 import {
-  index,
-  jsonb,
   pgTable,
-  timestamp,
   varchar,
   text,
+  timestamp,
   integer,
-  real,
+  decimal,
   boolean,
+  jsonb,
+  index,
+  pgEnum,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// Session storage table (required for Replit Auth)
+// Enums
+export const userRoleEnum = pgEnum('user_role', ['admin', 'client', 'developer']);
+export const paymentMethodEnum = pgEnum('payment_method', ['vodafone_cash', 'cash', 'bank_transfer']);
+export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'completed', 'failed', 'refunded']);
+export const propertyTypeEnum = pgEnum('property_type', ['apartment', 'villa', 'townhouse', 'penthouse', 'studio', 'duplex', 'land']);
+export const propertyStatusEnum = pgEnum('property_status', ['available', 'reserved', 'sold', 'off_market']);
+export const riskToleranceEnum = pgEnum('risk_tolerance', ['conservative', 'moderate', 'aggressive']);
+export const notificationTypeEnum = pgEnum('notification_type', ['opportunity', 'payment', 'consultation', 'market_update', 'system']);
+
+// Session storage table (mandatory for Replit Auth)
 export const sessions = pgTable(
   "sessions",
   {
@@ -25,20 +35,233 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (required for Replit Auth)
+// Users table with role-based access
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: varchar("role").notNull().default("buyer"), // buyer | developer | admin
-  credits: integer("credits").default(0),
-  referralCode: varchar("referral_code").unique(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  role: userRoleEnum("role").notNull().default('client'),
+  phone: varchar("phone"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Developers table
+export const developers = pgTable("developers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  companyName: varchar("company_name").notNull(),
+  companyDescription: text("company_description"),
+  licenseNumber: varchar("license_number"),
+  trustScore: decimal("trust_score", { precision: 3, scale: 2 }).default('0').notNull(),
+  totalDeals: integer("total_deals").default(0).notNull(),
+  successfulDeals: integer("successful_deals").default(0).notNull(),
+  complaints: integer("complaints").default(0).notNull(),
+  verified: boolean("verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_developers_user_id").on(table.userId),
+  index("idx_developers_trust_score").on(table.trustScore),
+]);
+
+// Properties table
+export const properties = pgTable("properties", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  developerId: varchar("developer_id").notNull().references(() => developers.id, { onDelete: 'cascade' }),
+  title: varchar("title", { length: 255 }).notNull(),
+  titleAr: varchar("title_ar", { length: 255 }),
+  description: text("description").notNull(),
+  descriptionAr: text("description_ar"),
+  propertyType: propertyTypeEnum("property_type").notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  area: decimal("area", { precision: 10, scale: 2 }).notNull(),
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  location: varchar("location", { length: 255 }).notNull(),
+  locationAr: varchar("location_ar", { length: 255 }),
+  region: varchar("region", { length: 100 }).notNull(),
+  images: text("images").array().default(sql`ARRAY[]::text[]`),
+  amenities: text("amenities").array().default(sql`ARRAY[]::text[]`),
+  status: propertyStatusEnum("status").default('available').notNull(),
+  featured: boolean("featured").default(false).notNull(),
+  viewCount: integer("view_count").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_properties_developer").on(table.developerId),
+  index("idx_properties_region").on(table.region),
+  index("idx_properties_status").on(table.status),
+  index("idx_properties_price").on(table.price),
+]);
+
+// Buyer Profiles
+export const buyerProfiles = pgTable("buyer_profiles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  budget: decimal("budget", { precision: 12, scale: 2 }),
+  preferredRegions: text("preferred_regions").array().default(sql`ARRAY[]::text[]`),
+  preferredPropertyTypes: text("preferred_property_types").array().default(sql`ARRAY[]::text[]`),
+  minBedrooms: integer("min_bedrooms"),
+  maxBedrooms: integer("max_bedrooms"),
+  riskTolerance: riskToleranceEnum("risk_tolerance").default('moderate'),
+  investmentGoal: text("investment_goal"),
+  timeline: varchar("timeline", { length: 100 }),
+  additionalPreferences: jsonb("additional_preferences"),
+  profileCompletion: integer("profile_completion").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_buyer_profiles_user").on(table.userId),
+]);
+
+// Consultations/AI Sessions
+export const consultations = pgTable("consultations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  sessionData: jsonb("session_data"),
+  questionsAsked: text("questions_asked").array().default(sql`ARRAY[]::text[]`),
+  recommendationsGiven: jsonb("recommendations_given"),
+  status: varchar("status", { length: 50 }).default('active').notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_consultations_user").on(table.userId),
+  index("idx_consultations_status").on(table.status),
+]);
+
+// Payments
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  consultationId: varchar("consultation_id").references(() => consultations.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default('EGP').notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull(),
+  paymentStatus: paymentStatusEnum("payment_status").default('pending').notNull(),
+  referenceNumber: varchar("reference_number"),
+  notes: text("notes"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_payments_user").on(table.userId),
+  index("idx_payments_status").on(table.paymentStatus),
+  index("idx_payments_consultation").on(table.consultationId),
+]);
+
+// Contracts
+export const contracts = pgTable("contracts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  propertyId: varchar("property_id").references(() => properties.id),
+  developerId: varchar("developer_id").references(() => developers.id),
+  fileName: varchar("file_name").notNull(),
+  fileUrl: varchar("file_url").notNull(),
+  fileSize: integer("file_size"),
+  analysisResults: jsonb("analysis_results"),
+  riskLevel: varchar("risk_level", { length: 50 }),
+  status: varchar("status", { length: 50 }).default('pending_review').notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_contracts_user").on(table.userId),
+  index("idx_contracts_property").on(table.propertyId),
+  index("idx_contracts_status").on(table.status),
+]);
+
+// Commissions
+export const commissions = pgTable("commissions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  propertyId: varchar("property_id").notNull().references(() => properties.id),
+  developerId: varchar("developer_id").notNull().references(() => developers.id),
+  saleAmount: decimal("sale_amount", { precision: 12, scale: 2 }).notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).default('2.00').notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).notNull(),
+  status: paymentStatusEnum("status").default('pending').notNull(),
+  paidAt: timestamp("paid_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_commissions_user").on(table.userId),
+  index("idx_commissions_developer").on(table.developerId),
+  index("idx_commissions_status").on(table.status),
+]);
+
+// Market Data
+export const marketData = pgTable("market_data", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  region: varchar("region", { length: 100 }).notNull(),
+  propertyType: varchar("property_type", { length: 50 }),
+  averagePrice: decimal("average_price", { precision: 12, scale: 2 }),
+  priceChange: decimal("price_change", { precision: 5, scale: 2 }),
+  demandLevel: varchar("demand_level", { length: 50 }),
+  supplyLevel: varchar("supply_level", { length: 50 }),
+  insights: jsonb("insights"),
+  dataSource: varchar("data_source", { length: 100 }),
+  validFrom: timestamp("valid_from").notNull(),
+  validTo: timestamp("valid_to"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_market_data_region").on(table.region),
+  index("idx_market_data_valid").on(table.validFrom, table.validTo),
+]);
+
+// Behavioral Tracking
+export const behavioralTracking = pgTable("behavioral_tracking", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }),
+  sessionId: varchar("session_id").notNull(),
+  page: varchar("page", { length: 255 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  scrollDepth: integer("scroll_depth"),
+  timeOnPage: integer("time_on_page"),
+  clickData: jsonb("click_data"),
+  metadata: jsonb("metadata"),
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+}, (table) => [
+  index("idx_behavioral_user").on(table.userId),
+  index("idx_behavioral_session").on(table.sessionId),
+  index("idx_behavioral_timestamp").on(table.timestamp),
+]);
+
+// Referrals
+export const referrals = pgTable("referrals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referrerId: varchar("referrer_id").notNull().references(() => users.id),
+  referredUserId: varchar("referred_user_id").references(() => users.id),
+  referralCode: varchar("referral_code", { length: 50 }).notNull().unique(),
+  status: varchar("status", { length: 50 }).default('pending').notNull(),
+  rewardAmount: decimal("reward_amount", { precision: 10, scale: 2 }),
+  rewardClaimed: boolean("reward_claimed").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_referrals_referrer").on(table.referrerId),
+  index("idx_referrals_code").on(table.referralCode),
+]);
+
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: notificationTypeEnum("type").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  titleAr: varchar("title_ar", { length: 255 }),
+  message: text("message").notNull(),
+  messageAr: text("message_ar"),
+  link: varchar("link"),
+  read: boolean("read").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_notifications_user").on(table.userId),
+  index("idx_notifications_read").on(table.read),
+]);
+
+// Relations
 export const usersRelations = relations(users, ({ one, many }) => ({
   buyerProfile: one(buyerProfiles, {
     fields: [users.id],
@@ -48,25 +271,13 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.id],
     references: [developers.userId],
   }),
-  behavioralEvents: many(behavioralEvents),
-  aiCloserSessions: many(aiCloserSessions),
-  referrals: many(referralProgram),
+  consultations: many(consultations),
+  payments: many(payments),
+  contracts: many(contracts),
+  commissions: many(commissions),
+  notifications: many(notifications),
+  referralsMade: many(referrals, { relationName: 'referrer' }),
 }));
-
-// Developers table
-export const developers = pgTable("developers", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
-  companyName: varchar("company_name").notNull(),
-  trustScore: real("trust_score").default(50), // 0-100
-  totalContracts: integer("total_contracts").default(0),
-  completedContracts: integer("completed_contracts").default(0),
-  complaints: integer("complaints").default(0),
-  averageRating: real("average_rating").default(0),
-  yearsInBusiness: integer("years_in_business").default(0),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
 export const developersRelations = relations(developers, ({ one, many }) => ({
   user: one(users, {
@@ -74,226 +285,66 @@ export const developersRelations = relations(developers, ({ one, many }) => ({
     references: [users.id],
   }),
   properties: many(properties),
-  contracts: many(contracts),
+  commissions: many(commissions),
 }));
-
-// Properties table
-export const properties = pgTable("properties", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  developerId: varchar("developer_id").references(() => developers.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  titleAr: text("title_ar"),
-  description: text("description").notNull(),
-  descriptionAr: text("description_ar"),
-  city: varchar("city").notNull(),
-  type: varchar("type").notNull(), // villa | apartment | office | commercial | land
-  price: integer("price").notNull(),
-  size: integer("size").notNull(), // in square meters
-  bedrooms: integer("bedrooms"),
-  bathrooms: integer("bathrooms"),
-  images: text("images").array().default(sql`ARRAY[]::text[]`),
-  status: varchar("status").default("available"), // available | sold | reserved
-  riskIndicators: text("risk_indicators").array().default(sql`ARRAY[]::text[]`),
-  location: jsonb("location"), // { lat, lng, address }
-  amenities: text("amenities").array().default(sql`ARRAY[]::text[]`),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
   developer: one(developers, {
     fields: [properties.developerId],
     references: [developers.id],
   }),
-  matches: many(propertyMatches),
   contracts: many(contracts),
+  commissions: many(commissions),
 }));
 
-// Contracts table
-export const contracts = pgTable("contracts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "cascade" }),
-  developerId: varchar("developer_id").references(() => developers.id, { onDelete: "cascade" }),
-  buyerId: varchar("buyer_id").references(() => users.id, { onDelete: "set null" }),
-  filePath: text("file_path"),
-  riskScore: real("risk_score").default(0), // 0-100
-  parsedClauses: jsonb("parsed_clauses"), // Array of extracted clauses
-  status: varchar("status").default("pending"), // pending | active | completed | disputed
-  signedAt: timestamp("signed_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const contractsRelations = relations(contracts, ({ one }) => ({
-  property: one(properties, {
-    fields: [contracts.propertyId],
-    references: [properties.id],
-  }),
-  developer: one(developers, {
-    fields: [contracts.developerId],
-    references: [developers.id],
-  }),
-  buyer: one(users, {
-    fields: [contracts.buyerId],
-    references: [users.id],
-  }),
-}));
-
-// Buyer Profiles table
-export const buyerProfiles = pgTable("buyer_profiles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }).unique(),
-  riskTolerance: varchar("risk_tolerance").default("medium"), // low | medium | high
-  decisionType: varchar("decision_type").default("analytical"), // analytical | emotional | balanced
-  urgency: varchar("urgency").default("medium"), // low | medium | high
-  budgetMin: integer("budget_min"),
-  budgetMax: integer("budget_max"),
-  preferredCities: text("preferred_cities").array().default(sql`ARRAY[]::text[]`),
-  preferredTypes: text("preferred_types").array().default(sql`ARRAY[]::text[]`),
-  interestHeatmap: jsonb("interest_heatmap"), // { propertyId: interestScore }
-  objectionHistory: jsonb("objection_history"), // Array of common objections
-  psychologicalTags: text("psychological_tags").array().default(sql`ARRAY[]::text[]`),
-  completedAt: timestamp("completed_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const buyerProfilesRelations = relations(buyerProfiles, ({ one, many }) => ({
+export const consultationsRelations = relations(consultations, ({ one, many }) => ({
   user: one(users, {
-    fields: [buyerProfiles.userId],
+    fields: [consultations.userId],
     references: [users.id],
   }),
-  matches: many(propertyMatches),
+  payments: many(payments),
 }));
 
-// Property Matches table
-export const propertyMatches = pgTable("property_matches", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  buyerProfileId: varchar("buyer_profile_id").references(() => buyerProfiles.id, { onDelete: "cascade" }),
-  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "cascade" }),
-  matchScore: real("match_score").notNull(), // 0-100
-  scoreBreakdown: jsonb("score_breakdown"), // Detailed scoring components
-  explanation: text("explanation"),
-  viewed: boolean("viewed").default(false),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const propertyMatchesRelations = relations(propertyMatches, ({ one }) => ({
-  buyerProfile: one(buyerProfiles, {
-    fields: [propertyMatches.buyerProfileId],
-    references: [buyerProfiles.id],
-  }),
-  property: one(properties, {
-    fields: [propertyMatches.propertyId],
-    references: [properties.id],
-  }),
-}));
-
-// AI Closer Sessions table
-export const aiCloserSessions = pgTable("ai_closer_sessions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  buyerId: varchar("buyer_id").references(() => users.id, { onDelete: "cascade" }),
-  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "set null" }),
-  sessionHistory: jsonb("session_history").notNull(), // Array of messages
-  purchaseProbability: real("purchase_probability").default(0), // 0-100
-  status: varchar("status").default("active"), // active | completed | abandoned
-  completedAt: timestamp("completed_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const aiCloserSessionsRelations = relations(aiCloserSessions, ({ one, many }) => ({
-  buyer: one(users, {
-    fields: [aiCloserSessions.buyerId],
-    references: [users.id],
-  }),
-  property: one(properties, {
-    fields: [aiCloserSessions.propertyId],
-    references: [properties.id],
-  }),
-  objectionResponses: many(objectionResponses),
-}));
-
-// Objection Responses table
-export const objectionResponses = pgTable("objection_responses", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  sessionId: varchar("session_id").references(() => aiCloserSessions.id, { onDelete: "cascade" }),
-  objection: text("objection").notNull(),
-  aiResponse: text("ai_response").notNull(),
-  effectivenessScore: real("effectiveness_score"), // 0-100, based on user reaction
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const objectionResponsesRelations = relations(objectionResponses, ({ one }) => ({
-  session: one(aiCloserSessions, {
-    fields: [objectionResponses.sessionId],
-    references: [aiCloserSessions.id],
-  }),
-}));
-
-// Behavioral Tracking table
-export const behavioralEvents = pgTable("behavioral_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
-  eventType: varchar("event_type").notNull(), // page_view | property_view | property_interest | scroll_depth | time_spent | click
-  element: varchar("element"),
-  propertyId: varchar("property_id").references(() => properties.id, { onDelete: "set null" }),
-  metadata: jsonb("metadata"), // Additional event data
-  timestamp: timestamp("timestamp").defaultNow(),
-});
-
-export const behavioralEventsRelations = relations(behavioralEvents, ({ one }) => ({
-  user: one(users, {
-    fields: [behavioralEvents.userId],
-    references: [users.id],
-  }),
-  property: one(properties, {
-    fields: [behavioralEvents.propertyId],
-    references: [properties.id],
-  }),
-}));
-
-// Referral Program table
-export const referralProgram = pgTable("referral_program", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
-  referredUserId: varchar("referred_user_id").references(() => users.id, { onDelete: "set null" }),
-  rewardAmount: integer("reward_amount").default(0),
-  status: varchar("status").default("pending"), // pending | completed | expired
-  convertedAt: timestamp("converted_at"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const referralProgramRelations = relations(referralProgram, ({ one }) => ({
-  user: one(users, {
-    fields: [referralProgram.userId],
-    references: [users.id],
-  }),
-  referredUser: one(users, {
-    fields: [referralProgram.referredUserId],
-    references: [users.id],
-  }),
-}));
-
-// Zod schemas and types
-export const upsertUserSchema = createInsertSchema(users).pick({
-  id: true,
-  email: true,
-  firstName: true,
-  lastName: true,
-  profileImageUrl: true,
+// Insert schemas
+export const upsertUserSchema = createInsertSchema(users).omit({
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertDeveloperSchema = createInsertSchema(developers).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  trustScore: true,
+  totalDeals: true,
+  successfulDeals: true,
+  complaints: true,
+  verified: true,
 });
 
 export const insertPropertySchema = createInsertSchema(properties).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  viewCount: true,
+});
+
+export const insertBuyerProfileSchema = createInsertSchema(buyerProfiles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  profileCompletion: true,
+});
+
+export const insertConsultationSchema = createInsertSchema(consultations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertContractSchema = createInsertSchema(contracts).omit({
@@ -302,163 +353,66 @@ export const insertContractSchema = createInsertSchema(contracts).omit({
   updatedAt: true,
 });
 
-export const insertBuyerProfileSchema = createInsertSchema(buyerProfiles).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertPropertyMatchSchema = createInsertSchema(propertyMatches).omit({
+export const insertCommissionSchema = createInsertSchema(commissions).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertAICloserSessionSchema = createInsertSchema(aiCloserSessions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertObjectionResponseSchema = createInsertSchema(objectionResponses).omit({
+export const insertMarketDataSchema = createInsertSchema(marketData).omit({
   id: true,
   createdAt: true,
 });
 
-export const insertBehavioralEventSchema = createInsertSchema(behavioralEvents).omit({
+export const insertBehavioralTrackingSchema = createInsertSchema(behavioralTracking).omit({
   id: true,
   timestamp: true,
 });
 
-export const insertReferralSchema = createInsertSchema(referralProgram).omit({
+export const insertReferralSchema = createInsertSchema(referrals).omit({
   id: true,
   createdAt: true,
+  rewardClaimed: true,
 });
 
-// Blog Categories table
-export const blogCategories = pgTable("blog_categories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  nameAr: varchar("name_ar").notNull(),
-  nameEn: varchar("name_en").notNull(),
-  slug: varchar("slug").notNull().unique(),
-  descriptionAr: text("description_ar"),
-  descriptionEn: text("description_en"),
-  createdAt: timestamp("created_at").defaultNow(),
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  createdAt: true,
+  read: true,
 });
 
-export const blogCategoriesRelations = relations(blogCategories, ({ many }) => ({
-  posts: many(blogPosts),
-}));
-
-// Blog Posts table
-export const blogPosts = pgTable("blog_posts", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  titleAr: text("title_ar").notNull(),
-  titleEn: text("title_en"),
-  slug: varchar("slug").notNull().unique(),
-  excerptAr: text("excerpt_ar").notNull(),
-  excerptEn: text("excerpt_en"),
-  contentAr: text("content_ar").notNull(),
-  contentEn: text("content_en"),
-  coverImage: text("cover_image"),
-  categoryId: varchar("category_id").references(() => blogCategories.id, { onDelete: "set null" }),
-  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
-  views: integer("views").default(0),
-  featured: boolean("featured").default(false),
-  published: boolean("published").default(true),
-  ctaText: text("cta_text"),
-  ctaLink: text("cta_link"),
-  relatedFeature: varchar("related_feature"), // ai_closer | matching_engine | trust_score | contract_scanner | profile_builder
-  publishedAt: timestamp("published_at").defaultNow(),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const blogPostsRelations = relations(blogPosts, ({ one, many }) => ({
-  category: one(blogCategories, {
-    fields: [blogPosts.categoryId],
-    references: [blogCategories.id],
-  }),
-  author: one(users, {
-    fields: [blogPosts.authorId],
-    references: [users.id],
-  }),
-  postTags: many(blogPostTags),
-}));
-
-// Blog Tags table
-export const blogTags = pgTable("blog_tags", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  nameAr: varchar("name_ar").notNull(),
-  nameEn: varchar("name_en").notNull(),
-  slug: varchar("slug").notNull().unique(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const blogTagsRelations = relations(blogTags, ({ many }) => ({
-  postTags: many(blogPostTags),
-}));
-
-// Blog Post Tags (many-to-many) table
-export const blogPostTags = pgTable("blog_post_tags", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  postId: varchar("post_id").references(() => blogPosts.id, { onDelete: "cascade" }),
-  tagId: varchar("tag_id").references(() => blogTags.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const blogPostTagsRelations = relations(blogPostTags, ({ one }) => ({
-  post: one(blogPosts, {
-    fields: [blogPostTags.postId],
-    references: [blogPosts.id],
-  }),
-  tag: one(blogTags, {
-    fields: [blogPostTags.tagId],
-    references: [blogTags.id],
-  }),
-}));
-
-// TypeScript types
+// Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
+
 export type InsertDeveloper = z.infer<typeof insertDeveloperSchema>;
 export type Developer = typeof developers.$inferSelect;
+
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 export type Property = typeof properties.$inferSelect;
-export type InsertContract = z.infer<typeof insertContractSchema>;
-export type Contract = typeof contracts.$inferSelect;
+
 export type InsertBuyerProfile = z.infer<typeof insertBuyerProfileSchema>;
 export type BuyerProfile = typeof buyerProfiles.$inferSelect;
-export type InsertPropertyMatch = z.infer<typeof insertPropertyMatchSchema>;
-export type PropertyMatch = typeof propertyMatches.$inferSelect;
-export type InsertAICloserSession = z.infer<typeof insertAICloserSessionSchema>;
-export type AICloserSession = typeof aiCloserSessions.$inferSelect;
-export type InsertObjectionResponse = z.infer<typeof insertObjectionResponseSchema>;
-export type ObjectionResponse = typeof objectionResponses.$inferSelect;
-export type InsertBehavioralEvent = z.infer<typeof insertBehavioralEventSchema>;
-export type BehavioralEvent = typeof behavioralEvents.$inferSelect;
+
+export type InsertConsultation = z.infer<typeof insertConsultationSchema>;
+export type Consultation = typeof consultations.$inferSelect;
+
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+export type InsertContract = z.infer<typeof insertContractSchema>;
+export type Contract = typeof contracts.$inferSelect;
+
+export type InsertCommission = z.infer<typeof insertCommissionSchema>;
+export type Commission = typeof commissions.$inferSelect;
+
+export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;
+export type MarketData = typeof marketData.$inferSelect;
+
+export type InsertBehavioralTracking = z.infer<typeof insertBehavioralTrackingSchema>;
+export type BehavioralTracking = typeof behavioralTracking.$inferSelect;
+
 export type InsertReferral = z.infer<typeof insertReferralSchema>;
-export type Referral = typeof referralProgram.$inferSelect;
-export type BlogCategory = typeof blogCategories.$inferSelect;
-export type BlogPost = typeof blogPosts.$inferSelect;
-export type BlogTag = typeof blogTags.$inferSelect;
-export type BlogPostTag = typeof blogPostTags.$inferSelect;
+export type Referral = typeof referrals.$inferSelect;
 
-export const insertBlogCategorySchema = createInsertSchema(blogCategories).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertBlogTagSchema = createInsertSchema(blogTags).omit({
-  id: true,
-  createdAt: true,
-});
-
-export type InsertBlogCategory = z.infer<typeof insertBlogCategorySchema>;
-export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
-export type InsertBlogTag = z.infer<typeof insertBlogTagSchema>;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;

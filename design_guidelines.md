@@ -1,150 +1,206 @@
-# Design Guidelines: Arabic-First Real Estate SaaS Platform
+# Design Guidelines: Arabic-First Real Estate Consultancy SaaS Platform
 
 ## Design Approach
 
-**Hybrid Strategy**: Combine Airbnb's property showcase aesthetics with Linear's dashboard precision for analytics interfaces. This platform requires dual excellence: inspiring trust through visual richness in buyer-facing views while delivering data clarity in professional dashboards.
+**Reference-Based Strategy:** Drawing inspiration from premium financial platforms (Stripe, Revolut) combined with luxury real estate sites (Sotheby's International Realty) and Arabic design excellence (Careem, Souq). Focus on authority, trust, and sophisticated data presentation.
 
-**Arabic-First RTL Foundation**: All layouts, navigation, and reading flows designed primarily for RTL, with LTR as adaptation—not afterthought.
+**Core Principles:**
+- Authority First: Every design decision reinforces expertise and credibility
+- Behavioral Optimization: Layouts guide users toward desired actions
+- Data Clarity: Complex information presented with elegant simplicity
+- Cultural Authenticity: Arabic-first with genuine RTL design, not mirrored LTR
 
-## Typography System
+---
 
-**Primary Font**: IBM Plex Sans Arabic (via Google Fonts CDN) for comprehensive Arabic support with matching Latin characters
-**Secondary Font**: Inter (for data tables, metrics, technical content)
+## Color Strategy (User-Specified)
 
-**Hierarchy**:
-- Hero Headlines: text-5xl md:text-6xl lg:text-7xl, font-bold
-- Section Headers: text-3xl md:text-4xl, font-bold
-- Property Titles: text-2xl md:text-3xl, font-semibold
-- Body Text: text-base md:text-lg, font-normal
-- Captions/Metadata: text-sm, font-medium
-- Data Labels: text-xs uppercase tracking-wide
+**Primary Palette:**
+- **Deep Blue:** Primary brand color, conveys trust and professionalism
+- **Gold/Amber:** Accent for premium features, CTAs, and value highlights
+- **White:** Clean backgrounds, breathing room, modern sophistication
+- **Supporting Grays:** Slate-600 to Slate-100 for hierarchy and subtlety
 
-## Layout & Spacing System
+**Application:**
+- Navigation/Headers: Deep blue backgrounds with white/gold accents
+- CTAs: Gold backgrounds with white text for primary actions
+- Data Cards: White backgrounds with deep blue headers
+- Trust Badges: Gold borders and icons
+- Dashboards: Light gray backgrounds (Slate-50) with white cards
 
-**Spacing Primitives**: Use Tailwind units of 3, 4, 6, 8, 12, 16, 24
-- Tight spacing: p-3, gap-4 (cards, form fields)
-- Standard spacing: p-6, gap-6 (sections, containers)
-- Generous spacing: p-12, py-16, py-24 (page sections)
+---
 
-**Grid Systems**:
-- Property Cards: grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6
-- Dashboard Metrics: grid-cols-2 md:grid-cols-4 gap-4
-- Match Scores: grid-cols-1 lg:grid-cols-2 gap-8
+## Typography
 
-**Container Strategy**:
-- Marketing pages: max-w-7xl mx-auto px-6
-- Property listings: max-w-screen-2xl mx-auto px-4
-- Dashboards: max-w-screen-xl mx-auto px-6
-- Forms & wizards: max-w-2xl mx-auto
+**Arabic Typography (Primary):**
+- **Headers:** Tajawal Bold (Google Fonts), weights 700-800
+- **Body:** Tajawal Regular/Medium, weights 400-500
+- **Data/Numbers:** IBM Plex Sans Arabic for clarity
 
-## Core Components
+**English Typography (Secondary):**
+- **Headers:** Inter Bold, weights 600-700
+- **Body:** Inter Regular, weight 400-500
 
-### Navigation
-**Buyer Navigation**: Horizontal nav with mega-menu for property filters, sticky on scroll, includes language toggle and profile dropdown
-**Dashboard Navigation**: Side navigation (right-aligned for RTL) with collapsible menu, role-based items, trust score indicator
+**Hierarchy:**
+- Hero Headlines: text-5xl md:text-6xl lg:text-7xl
+- Section Headers: text-3xl md:text-4xl lg:text-5xl
+- Card Titles: text-xl md:text-2xl
+- Body Text: text-base md:text-lg
+- Captions/Meta: text-sm
 
-### Property Cards
-- Large image (aspect-ratio-4/3)
-- Developer trust badge (top-start corner overlay)
-- Price prominently displayed (text-2xl font-bold)
-- Key specs in horizontal pill badges
-- Match score progress ring (if logged in)
-- Subtle hover elevation
+---
 
-### Trust Score Indicators
-- Circular progress indicator (0-100 scale)
-- Color-neutral presentation (no red/green, use gradients)
-- Breakdown tooltip on hover
-- Historical trend micro-chart
+## Layout System
 
-### AI Chat Interface
-- Fixed bottom-right (bottom-left in LTR) floating widget
-- Expandable panel: collapsed (80x80), expanded (400x600)
-- Message bubbles: buyer (end-aligned), AI (start-aligned)
-- Purchase probability meter at top
-- Typing indicators and timestamps
+**Spacing Units:** Tailwind units of 4, 6, 8, 12, 16, 24
+- Card padding: p-6 md:p-8
+- Section spacing: py-16 md:py-24
+- Component gaps: gap-6 or gap-8
+- Grid gutters: gap-4 md:gap-6
 
-### Dashboard Cards
-- Bordered cards with subtle shadow
-- Header with metric name + info tooltip
-- Large number display (text-4xl font-bold)
-- Trend indicator (↑↓ with percentage)
-- Mini sparkline chart where relevant
+**Container Strategy:**
+- Marketing pages: max-w-7xl mx-auto px-4 md:px-6
+- Dashboards: max-w-screen-2xl mx-auto px-4 md:px-8
+- Forms/Content: max-w-2xl mx-auto
 
-### Forms & Wizards
-- Multi-step progress indicator at top
-- Generous field spacing (space-y-6)
-- Inline validation with clear messaging
-- CTAs: Primary full-width, Secondary outline
-- Profile Builder: Card-based selection for psychological attributes
+**Grid Patterns:**
+- Feature grids: grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+- Dashboard widgets: grid-cols-1 lg:grid-cols-2 xl:grid-cols-3
+- Stat displays: grid-cols-2 md:grid-cols-4
 
-### Match Dashboard
-- Split layout: Filters sidebar (300px) + Main content
-- Score explanation accordions
-- Comparison view toggle (grid vs list)
-- Detailed rationale modal
+---
+
+## RTL & Bilingual Implementation
+
+**Critical RTL Considerations:**
+- Use `dir="rtl"` attribute on Arabic pages
+- Tailwind RTL utilities: rtl:text-right, rtl:space-x-reverse
+- Flip navigation: Right-aligned menus for Arabic
+- Icons: Mirror directional icons (arrows, chevrons)
+- Number formatting: Maintain Arabic numerals (١٢٣) for authenticity
+
+**Language Toggle:**
+- Persistent language switcher in top-right (LTR) / top-left (RTL)
+- Smooth transition between languages without page reload
+- Store preference in localStorage
+
+---
+
+## Component Library
+
+**Navigation:**
+- Sticky header with deep blue background, white/gold text
+- Language toggle + role indicator (Client/Admin/Developer)
+- Mobile: Hamburger menu with slide-in drawer
+
+**Hero Section (Landing Page):**
+- Large hero with background image (luxury property or Dubai skyline)
+- Overlay gradient (deep blue to transparent)
+- Centered Arabic headline with gold accent underline
+- Dual CTA buttons: Gold "ابدأ الاستشارة" (Start Consultation - 200 EGP) + Outlined white "تعرف أكثر"
+- Trust indicators below: "أكثر من 500 عميل راضي" with checkmark icons
+
+**Dashboard Cards:**
+- White background with subtle shadow (shadow-md)
+- Deep blue header bar with gold icon
+- Data visualization areas with clean spacing
+- Hover state: shadow-lg transition
+
+**Forms:**
+- Large, generous input fields (h-12 md:h-14)
+- Gold focus rings (focus:ring-2 focus:ring-gold-500)
+- Inline validation with gentle feedback
+- Progress indicators for multi-step forms
+
+**Data Tables:**
+- Striped rows for readability (alternate white/slate-50)
+- Deep blue header row with white text
+- Gold highlights for key metrics
+- Responsive: Card view on mobile, table on desktop
+
+**CTAs & Buttons:**
+- Primary: Gold background, white text, rounded-lg, px-8 py-4
+- Secondary: Deep blue border, deep blue text, bg-white
+- Hover: Subtle scale (hover:scale-105) + shadow increase
+
+**Trust Elements:**
+- Verification badges: Gold border circles with checkmarks
+- Client testimonials: White cards with gold quotation marks
+- Security indicators: Lock icons with "معاملات آمنة 100%"
+
+---
+
+## Neuro-Marketing Elements
+
+**Scarcity Triggers:**
+- Red countdown timers for limited opportunities: "تبقى 48 ساعة فقط"
+- "فرصة حصرية" badges in gold
+
+**Social Proof:**
+- Recent activity feed: "محمد أتم صفقة بنجاح منذ ساعتين"
+- Trust score displays with star ratings
+- Client count animations (counting up)
+
+**Progress & Commitment:**
+- Multi-step form progress bars (5 steps max)
+- "أنت على بُعد خطوة واحدة من توصيتك الشخصية"
+- Completion percentages for profiles
+
+**Authority Signals:**
+- Credentials display: "معتمد من..." with logos
+- Market data citations with timestamps
+- Expert headshots with credentials
+
+---
 
 ## Page-Specific Layouts
 
-### Buyer Homepage
-- Hero: Full-width search bar with city selector, overlaid on property montage (h-[70vh])
-- Featured Properties: 3-column grid
-- Trust Explainer: 2-column split (visual + content)
-- AI Closer Demo: Centered with animated chat preview
-- CTA Section: py-24 with generous whitespace
+**Landing Page:**
+1. Hero with large image, dual CTAs
+2. Trust indicators bar (3-4 metrics)
+3. "كيف يعمل النظام" - 3-column process grid
+4. Featured properties grid (2x3 cards)
+5. Testimonials carousel (3 visible)
+6. Pricing transparency section
+7. Final CTA with scarcity timer
+8. Footer with quick links, social proof
 
-### Property Detail Page
-- Image gallery: Main hero (h-[60vh]) + thumbnail strip
-- Two-column: Property info (8/12) + Booking card (4/12, sticky)
-- Developer profile card with trust breakdown
-- Match score callout (if logged in)
-- Similar properties grid
+**Client Dashboard:**
+- Left sidebar navigation (right sidebar in RTL)
+- Top stats bar: Consultations, Saved Properties, Profile Completion
+- 2-column grid: Recommendations + Recent Activity
+- AI Chat widget (bottom-right in LTR, bottom-left in RTL)
 
-### Developer Dashboard
-- Stats overview: 4-column metric cards
-- Lead pipeline: Kanban-style columns
-- Trust score: Large circular gauge + breakdown table
-- Match optimization: Tabbed interface (Profile, Properties, Insights)
-- A/B testing results: Comparison cards
+**Admin Dashboard:**
+- 4-column stats grid
+- Market data upload area (drag-and-drop)
+- Behavioral analytics charts (line/bar graphs)
+- Developer performance table
+- Recent client activity feed
 
-### Admin Analytics
-- Full-width time range selector
-- Multi-metric overview: 6-column compact cards
-- Behavioral funnel: Horizontal stepped visualization
-- AI session performance: Tabbed charts (Effectiveness, Conversion, Objections)
-- Developer monitoring: Sortable table with inline charts
+---
 
 ## Images
 
-**Hero Section**: Yes - Large hero image on buyer homepage showing premium Arabic real estate (modern villas, luxury apartments in Dubai/Riyadh aesthetic). Image should convey trust and aspiration. Use subtle overlay gradient for text readability.
+**Required Images:**
+1. **Hero Image:** Luxury Dubai property or skyline at sunset (full-width, min 1920px)
+2. **Feature Icons:** Custom gold-colored icons for services (consultation, analysis, matching)
+3. **Trust Badges:** Partner logos, certification marks (place in trust bar)
+4. **Property Placeholders:** High-quality property images for cards (16:9 ratio)
+5. **Team/Expert Photos:** Professional headshots for authority (circular crop)
+6. **Background Patterns:** Subtle Arabic geometric patterns for section dividers
 
-**Property Listings**: Multiple property images per listing (minimum 5-8 photos per property). Hero image in 4:3 aspect ratio, professional architectural photography style.
+**Placement:**
+- Hero: Full-width with gradient overlay
+- Feature sections: Icons left/right of text (flipped in RTL)
+- Property cards: Top of card, 16:9 aspect ratio
+- Testimonials: Circular user photos
 
-**Developer Profiles**: Headshot/logo for each developer, company office photos where available.
+---
 
-**Trust Indicators**: Icon-based visualizations (checkmarks, shields, certificates) for trust score breakdowns.
+## Animations (Minimal)
 
-**AI Chat Widget**: Avatar for AI assistant (friendly, professional icon).
-
-**Empty States**: Illustration-based empty states for no properties, no matches, no data scenarios.
-
-**All images with button overlays**: Implement backdrop-blur-md on button backgrounds for glass-morphism effect.
-
-## RTL-Specific Considerations
-
-- All directional utilities reverse: ml→mr, left→right, rounded-l→rounded-r
-- Icons maintain LTR orientation (don't mirror arrows, chevrons)
-- Form layouts: Labels on right, inputs extend left
-- Charts/graphs: Maintain standard left-to-right data flow
-- Navigation: Menu items flow right-to-left
-- Breadcrumbs: Separator direction reverses (← instead of →)
-
-## Interaction Patterns
-
-**Minimal Animation**: Subtle hover elevations, smooth transitions (transition-all duration-200), no scroll-triggered effects except sticky navigation.
-
-**Loading States**: Skeleton screens for property cards, shimmer effect for dashboard metrics.
-
-**Micro-interactions**: Success checkmarks, error shakes, form field focus rings (ring-2).
-
-**Responsive Behavior**: Mobile-first collapsible navigation, stacked layouts on small screens, touch-friendly tap targets (min 44x44px).
+- Fade-in on scroll for section reveals
+- Number count-up for statistics
+- Smooth language transition (200ms ease)
+- Button scale on hover (scale-105)
+- Card shadow transitions

@@ -2,130 +2,109 @@ import {
   users,
   developers,
   properties,
-  contracts,
   buyerProfiles,
-  propertyMatches,
-  aiCloserSessions,
-  objectionResponses,
-  behavioralEvents,
-  referralProgram,
-  blogCategories,
-  blogPosts,
-  blogTags,
-  blogPostTags,
+  consultations,
+  payments,
+  contracts,
+  commissions,
+  marketData,
+  behavioralTracking,
+  referrals,
+  notifications,
   type User,
   type UpsertUser,
   type Developer,
   type InsertDeveloper,
   type Property,
   type InsertProperty,
-  type Contract,
-  type InsertContract,
   type BuyerProfile,
   type InsertBuyerProfile,
-  type PropertyMatch,
-  type InsertPropertyMatch,
-  type AICloserSession,
-  type InsertAICloserSession,
-  type ObjectionResponse,
-  type InsertObjectionResponse,
-  type BehavioralEvent,
-  type InsertBehavioralEvent,
+  type Consultation,
+  type InsertConsultation,
+  type Payment,
+  type InsertPayment,
+  type Contract,
+  type InsertContract,
+  type Commission,
+  type InsertCommission,
+  type MarketData,
+  type InsertMarketData,
+  type BehavioralTracking,
+  type InsertBehavioralTracking,
   type Referral,
   type InsertReferral,
-  type BlogCategory,
-  type InsertBlogCategory,
-  type BlogPost,
-  type InsertBlogPost,
-  type BlogTag,
-  type InsertBlogTag,
+  type Notification,
+  type InsertNotification,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, gte, lte, desc, sql, like, or } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (Replit Auth required)
+  // User operations
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  getUsersByRole(role: string): Promise<User[]>;
+  getAllUsers(): Promise<User[]>;
   
   // Developer operations
-  getDeveloper(id: string): Promise<Developer | undefined>;
   getDeveloperByUserId(userId: string): Promise<Developer | undefined>;
   createDeveloper(developer: InsertDeveloper): Promise<Developer>;
-  updateDeveloper(id: string, developer: Partial<InsertDeveloper>): Promise<Developer>;
+  updateDeveloperTrustScore(id: string, score: number): Promise<void>;
   getAllDevelopers(): Promise<Developer[]>;
   
   // Property operations
   getProperty(id: string): Promise<Property | undefined>;
-  getPropertyWithDeveloper(id: string): Promise<(Property & { developer?: Developer }) | undefined>;
-  getProperties(filters?: { city?: string; type?: string; search?: string }): Promise<(Property & { developer?: Developer })[]>;
+  getPropertiesByDeveloper(developerId: string): Promise<Property[]>;
+  getAllProperties(): Promise<Property[]>;
   createProperty(property: InsertProperty): Promise<Property>;
-  updateProperty(id: string, property: Partial<InsertProperty>): Promise<Property>;
-  
-  // Contract operations
-  getContract(id: string): Promise<Contract | undefined>;
-  getContractsByDeveloperId(developerId: string): Promise<Contract[]>;
-  getContractsByBuyerId(buyerId: string): Promise<Contract[]>;
-  createContract(contract: InsertContract): Promise<Contract>;
-  updateContract(id: string, contract: Partial<InsertContract>): Promise<Contract>;
+  updateProperty(id: string, updates: Partial<Property>): Promise<Property>;
+  incrementPropertyViews(id: string): Promise<void>;
   
   // Buyer Profile operations
-  getBuyerProfile(id: string): Promise<BuyerProfile | undefined>;
   getBuyerProfileByUserId(userId: string): Promise<BuyerProfile | undefined>;
   createBuyerProfile(profile: InsertBuyerProfile): Promise<BuyerProfile>;
-  updateBuyerProfile(id: string, profile: Partial<InsertBuyerProfile>): Promise<BuyerProfile>;
+  updateBuyerProfile(userId: string, updates: Partial<BuyerProfile>): Promise<BuyerProfile>;
   
-  // Property Match operations
-  getPropertyMatch(id: string): Promise<PropertyMatch | undefined>;
-  getMatchesByBuyerProfileId(buyerProfileId: string): Promise<(PropertyMatch & { property?: Property & { developer?: Developer } })[]>;
-  createPropertyMatch(match: InsertPropertyMatch): Promise<PropertyMatch>;
-  updatePropertyMatch(id: string, match: Partial<InsertPropertyMatch>): Promise<PropertyMatch>;
+  // Consultation operations
+  getConsultation(id: string): Promise<Consultation | undefined>;
+  getConsultationsByUser(userId: string): Promise<Consultation[]>;
+  createConsultation(consultation: InsertConsultation): Promise<Consultation>;
+  updateConsultation(id: string, updates: Partial<Consultation>): Promise<Consultation>;
   
-  // AI Closer Session operations
-  getAICloserSession(id: string): Promise<AICloserSession | undefined>;
-  getSessionsByBuyerId(buyerId: string): Promise<AICloserSession[]>;
-  createAICloserSession(session: InsertAICloserSession): Promise<AICloserSession>;
-  updateAICloserSession(id: string, session: Partial<InsertAICloserSession>): Promise<AICloserSession>;
+  // Payment operations
+  getPayment(id: string): Promise<Payment | undefined>;
+  getPaymentsByUser(userId: string): Promise<Payment[]>;
+  getAllPayments(): Promise<Payment[]>;
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  updatePaymentStatus(id: string, status: string): Promise<void>;
   
-  // Objection Response operations
-  createObjectionResponse(response: InsertObjectionResponse): Promise<ObjectionResponse>;
-  getObjectionResponsesBySessionId(sessionId: string): Promise<ObjectionResponse[]>;
+  // Contract operations
+  getContractsByUser(userId: string): Promise<Contract[]>;
+  createContract(contract: InsertContract): Promise<Contract>;
   
-  // Behavioral Event operations
-  createBehavioralEvent(event: InsertBehavioralEvent): Promise<BehavioralEvent>;
-  getBehavioralEventsByUserId(userId: string): Promise<BehavioralEvent[]>;
+  // Commission operations
+  getCommissionsByDeveloper(developerId: string): Promise<Commission[]>;
+  createCommission(commission: InsertCommission): Promise<Commission>;
   
-  // Referral Program operations
+  // Market Data operations
+  getAllMarketData(): Promise<MarketData[]>;
+  getMarketDataByRegion(region: string): Promise<MarketData[]>;
+  createMarketData(data: InsertMarketData): Promise<MarketData>;
+  bulkCreateMarketData(dataArray: InsertMarketData[]): Promise<MarketData[]>;
+  
+  // Behavioral Tracking operations
+  createBehavioralTracking(tracking: InsertBehavioralTracking): Promise<BehavioralTracking>;
+  getBehavioralTrackingByUser(userId: string): Promise<BehavioralTracking[]>;
+  getAllBehavioralTracking(): Promise<BehavioralTracking[]>;
+  
+  // Referral operations
+  getReferralByCode(code: string): Promise<Referral | undefined>;
+  getReferralsByReferrer(referrerId: string): Promise<Referral[]>;
   createReferral(referral: InsertReferral): Promise<Referral>;
-  getReferralsByUserId(userId: string): Promise<Referral[]>;
   
-  // Admin stats
-  getAdminStats(): Promise<{
-    totalUsers: number;
-    totalDevelopers: number;
-    totalProperties: number;
-    totalSessions: number;
-    avgPurchaseProbability: number;
-    highRiskProperties: number;
-  }>;
-  
-  // Blog operations
-  getBlogCategories(): Promise<BlogCategory[]>;
-  createBlogCategory(category: InsertBlogCategory): Promise<BlogCategory>;
-  
-  getBlogPosts(filters?: { categoryId?: string; featured?: boolean; published?: boolean }): Promise<(BlogPost & { category?: BlogCategory })[]>;
-  getBlogPost(id: string): Promise<(BlogPost & { category?: BlogCategory }) | undefined>;
-  getBlogPostBySlug(slug: string): Promise<(BlogPost & { category?: BlogCategory; tags?: BlogTag[] }) | undefined>;
-  createBlogPost(post: InsertBlogPost): Promise<BlogPost>;
-  updateBlogPost(id: string, post: Partial<InsertBlogPost>): Promise<BlogPost>;
-  incrementBlogPostViews(id: string): Promise<void>;
-  
-  getBlogTags(): Promise<BlogTag[]>;
-  createBlogTag(tag: InsertBlogTag): Promise<BlogTag>;
-  
-  addTagToPost(postId: string, tagId: string): Promise<void>;
-  getPostTags(postId: string): Promise<BlogTag[]>;
+  // Notification operations
+  getNotificationsByUser(userId: string): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -150,16 +129,11 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUsersByRole(role: string): Promise<User[]> {
-    return await db.select().from(users).where(eq(users.role, role));
+  async getAllUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt));
   }
 
   // Developer operations
-  async getDeveloper(id: string): Promise<Developer | undefined> {
-    const [developer] = await db.select().from(developers).where(eq(developers.id, id));
-    return developer;
-  }
-
   async getDeveloperByUserId(userId: string): Promise<Developer | undefined> {
     const [developer] = await db.select().from(developers).where(eq(developers.userId, userId));
     return developer;
@@ -170,17 +144,14 @@ export class DatabaseStorage implements IStorage {
     return developer;
   }
 
-  async updateDeveloper(id: string, developerData: Partial<InsertDeveloper>): Promise<Developer> {
-    const [developer] = await db
-      .update(developers)
-      .set({ ...developerData, updatedAt: new Date() })
-      .where(eq(developers.id, id))
-      .returning();
-    return developer;
+  async updateDeveloperTrustScore(id: string, score: number): Promise<void> {
+    await db.update(developers)
+      .set({ trustScore: score.toString(), updatedAt: new Date() })
+      .where(eq(developers.id, id));
   }
 
   async getAllDevelopers(): Promise<Developer[]> {
-    return await db.select().from(developers);
+    return db.select().from(developers).orderBy(desc(developers.createdAt));
   }
 
   // Property operations
@@ -189,42 +160,14 @@ export class DatabaseStorage implements IStorage {
     return property;
   }
 
-  async getPropertyWithDeveloper(id: string): Promise<(Property & { developer?: Developer }) | undefined> {
-    const [result] = await db
-      .select()
-      .from(properties)
-      .leftJoin(developers, eq(properties.developerId, developers.id))
-      .where(eq(properties.id, id));
-    
-    if (!result) return undefined;
-    
-    return {
-      ...result.properties,
-      developer: result.developers || undefined,
-    };
+  async getPropertiesByDeveloper(developerId: string): Promise<Property[]> {
+    return db.select().from(properties)
+      .where(eq(properties.developerId, developerId))
+      .orderBy(desc(properties.createdAt));
   }
 
-  async getProperties(filters?: { city?: string; type?: string; search?: string }): Promise<(Property & { developer?: Developer })[]> {
-    let query = db.select().from(properties).leftJoin(developers, eq(properties.developerId, developers.id));
-    
-    const conditions = [];
-    if (filters?.city && filters.city !== 'all') {
-      conditions.push(eq(properties.city, filters.city));
-    }
-    if (filters?.type && filters.type !== 'all') {
-      conditions.push(eq(properties.type, filters.type));
-    }
-    
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
-    }
-    
-    const results = await query;
-    
-    return results.map(result => ({
-      ...result.properties,
-      developer: result.developers || undefined,
-    }));
+  async getAllProperties(): Promise<Property[]> {
+    return db.select().from(properties).orderBy(desc(properties.createdAt));
   }
 
   async createProperty(propertyData: InsertProperty): Promise<Property> {
@@ -232,49 +175,21 @@ export class DatabaseStorage implements IStorage {
     return property;
   }
 
-  async updateProperty(id: string, propertyData: Partial<InsertProperty>): Promise<Property> {
-    const [property] = await db
-      .update(properties)
-      .set({ ...propertyData, updatedAt: new Date() })
+  async updateProperty(id: string, updates: Partial<Property>): Promise<Property> {
+    const [property] = await db.update(properties)
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(properties.id, id))
       .returning();
     return property;
   }
 
-  // Contract operations
-  async getContract(id: string): Promise<Contract | undefined> {
-    const [contract] = await db.select().from(contracts).where(eq(contracts.id, id));
-    return contract;
-  }
-
-  async getContractsByDeveloperId(developerId: string): Promise<Contract[]> {
-    return await db.select().from(contracts).where(eq(contracts.developerId, developerId));
-  }
-
-  async getContractsByBuyerId(buyerId: string): Promise<Contract[]> {
-    return await db.select().from(contracts).where(eq(contracts.buyerId, buyerId));
-  }
-
-  async createContract(contractData: InsertContract): Promise<Contract> {
-    const [contract] = await db.insert(contracts).values(contractData).returning();
-    return contract;
-  }
-
-  async updateContract(id: string, contractData: Partial<InsertContract>): Promise<Contract> {
-    const [contract] = await db
-      .update(contracts)
-      .set({ ...contractData, updatedAt: new Date() })
-      .where(eq(contracts.id, id))
-      .returning();
-    return contract;
+  async incrementPropertyViews(id: string): Promise<void> {
+    await db.update(properties)
+      .set({ viewCount: sql`${properties.viewCount} + 1` })
+      .where(eq(properties.id, id));
   }
 
   // Buyer Profile operations
-  async getBuyerProfile(id: string): Promise<BuyerProfile | undefined> {
-    const [profile] = await db.select().from(buyerProfiles).where(eq(buyerProfiles.id, id));
-    return profile;
-  }
-
   async getBuyerProfileByUserId(userId: string): Promise<BuyerProfile | undefined> {
     const [profile] = await db.select().from(buyerProfiles).where(eq(buyerProfiles.userId, userId));
     return profile;
@@ -285,246 +200,159 @@ export class DatabaseStorage implements IStorage {
     return profile;
   }
 
-  async updateBuyerProfile(id: string, profileData: Partial<InsertBuyerProfile>): Promise<BuyerProfile> {
-    const [profile] = await db
-      .update(buyerProfiles)
-      .set({ ...profileData, updatedAt: new Date() })
-      .where(eq(buyerProfiles.id, id))
+  async updateBuyerProfile(userId: string, updates: Partial<BuyerProfile>): Promise<BuyerProfile> {
+    const [profile] = await db.update(buyerProfiles)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(buyerProfiles.userId, userId))
       .returning();
     return profile;
   }
 
-  // Property Match operations
-  async getPropertyMatch(id: string): Promise<PropertyMatch | undefined> {
-    const [match] = await db.select().from(propertyMatches).where(eq(propertyMatches.id, id));
-    return match;
+  // Consultation operations
+  async getConsultation(id: string): Promise<Consultation | undefined> {
+    const [consultation] = await db.select().from(consultations).where(eq(consultations.id, id));
+    return consultation;
   }
 
-  async getMatchesByBuyerProfileId(buyerProfileId: string): Promise<(PropertyMatch & { property?: Property & { developer?: Developer } })[]> {
-    const results = await db
-      .select()
-      .from(propertyMatches)
-      .leftJoin(properties, eq(propertyMatches.propertyId, properties.id))
-      .leftJoin(developers, eq(properties.developerId, developers.id))
-      .where(eq(propertyMatches.buyerProfileId, buyerProfileId))
-      .orderBy(desc(propertyMatches.matchScore));
-    
-    return results.map(result => ({
-      ...result.property_matches,
-      property: result.properties ? {
-        ...result.properties,
-        developer: result.developers || undefined,
-      } : undefined,
-    }));
+  async getConsultationsByUser(userId: string): Promise<Consultation[]> {
+    return db.select().from(consultations)
+      .where(eq(consultations.userId, userId))
+      .orderBy(desc(consultations.createdAt));
   }
 
-  async createPropertyMatch(matchData: InsertPropertyMatch): Promise<PropertyMatch> {
-    const [match] = await db.insert(propertyMatches).values(matchData).returning();
-    return match;
+  async createConsultation(consultationData: InsertConsultation): Promise<Consultation> {
+    const [consultation] = await db.insert(consultations).values(consultationData).returning();
+    return consultation;
   }
 
-  async updatePropertyMatch(id: string, matchData: Partial<InsertPropertyMatch>): Promise<PropertyMatch> {
-    const [match] = await db
-      .update(propertyMatches)
-      .set(matchData)
-      .where(eq(propertyMatches.id, id))
+  async updateConsultation(id: string, updates: Partial<Consultation>): Promise<Consultation> {
+    const [consultation] = await db.update(consultations)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(consultations.id, id))
       .returning();
-    return match;
+    return consultation;
   }
 
-  // AI Closer Session operations
-  async getAICloserSession(id: string): Promise<AICloserSession | undefined> {
-    const [session] = await db.select().from(aiCloserSessions).where(eq(aiCloserSessions.id, id));
-    return session;
+  // Payment operations
+  async getPayment(id: string): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment;
   }
 
-  async getSessionsByBuyerId(buyerId: string): Promise<AICloserSession[]> {
-    return await db.select().from(aiCloserSessions).where(eq(aiCloserSessions.buyerId, buyerId));
+  async getPaymentsByUser(userId: string): Promise<Payment[]> {
+    return db.select().from(payments)
+      .where(eq(payments.userId, userId))
+      .orderBy(desc(payments.createdAt));
   }
 
-  async createAICloserSession(sessionData: InsertAICloserSession): Promise<AICloserSession> {
-    const [session] = await db.insert(aiCloserSessions).values(sessionData).returning();
-    return session;
+  async getAllPayments(): Promise<Payment[]> {
+    return db.select().from(payments).orderBy(desc(payments.createdAt));
   }
 
-  async updateAICloserSession(id: string, sessionData: Partial<InsertAICloserSession>): Promise<AICloserSession> {
-    const [session] = await db
-      .update(aiCloserSessions)
-      .set({ ...sessionData, updatedAt: new Date() })
-      .where(eq(aiCloserSessions.id, id))
-      .returning();
-    return session;
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const [payment] = await db.insert(payments).values(paymentData).returning();
+    return payment;
   }
 
-  // Objection Response operations
-  async createObjectionResponse(responseData: InsertObjectionResponse): Promise<ObjectionResponse> {
-    const [response] = await db.insert(objectionResponses).values(responseData).returning();
-    return response;
+  async updatePaymentStatus(id: string, status: string): Promise<void> {
+    await db.update(payments)
+      .set({ paymentStatus: status as any })
+      .where(eq(payments.id, id));
   }
 
-  async getObjectionResponsesBySessionId(sessionId: string): Promise<ObjectionResponse[]> {
-    return await db.select().from(objectionResponses).where(eq(objectionResponses.sessionId, sessionId));
+  // Contract operations
+  async getContractsByUser(userId: string): Promise<Contract[]> {
+    return db.select().from(contracts)
+      .where(eq(contracts.userId, userId))
+      .orderBy(desc(contracts.createdAt));
   }
 
-  // Behavioral Event operations
-  async createBehavioralEvent(eventData: InsertBehavioralEvent): Promise<BehavioralEvent> {
-    const [event] = await db.insert(behavioralEvents).values(eventData).returning();
-    return event;
+  async createContract(contractData: InsertContract): Promise<Contract> {
+    const [contract] = await db.insert(contracts).values(contractData).returning();
+    return contract;
   }
 
-  async getBehavioralEventsByUserId(userId: string): Promise<BehavioralEvent[]> {
-    return await db.select().from(behavioralEvents).where(eq(behavioralEvents.userId, userId));
+  // Commission operations
+  async getCommissionsByDeveloper(developerId: string): Promise<Commission[]> {
+    return db.select().from(commissions)
+      .where(eq(commissions.developerId, developerId))
+      .orderBy(desc(commissions.createdAt));
   }
 
-  // Referral Program operations
-  async createReferral(referralData: InsertReferral): Promise<Referral> {
-    const [referral] = await db.insert(referralProgram).values(referralData).returning();
+  async createCommission(commissionData: InsertCommission): Promise<Commission> {
+    const [commission] = await db.insert(commissions).values(commissionData).returning();
+    return commission;
+  }
+
+  // Market Data operations
+  async getAllMarketData(): Promise<MarketData[]> {
+    return db.select().from(marketData).orderBy(desc(marketData.createdAt));
+  }
+
+  async getMarketDataByRegion(region: string): Promise<MarketData[]> {
+    return db.select().from(marketData)
+      .where(eq(marketData.region, region))
+      .orderBy(desc(marketData.createdAt));
+  }
+
+  async createMarketData(data: InsertMarketData): Promise<MarketData> {
+    const [record] = await db.insert(marketData).values(data).returning();
+    return record;
+  }
+
+  async bulkCreateMarketData(dataArray: InsertMarketData[]): Promise<MarketData[]> {
+    return db.insert(marketData).values(dataArray).returning();
+  }
+
+  // Behavioral Tracking operations
+  async createBehavioralTracking(trackingData: InsertBehavioralTracking): Promise<BehavioralTracking> {
+    const [record] = await db.insert(behavioralTracking).values(trackingData).returning();
+    return record;
+  }
+
+  async getBehavioralTrackingByUser(userId: string): Promise<BehavioralTracking[]> {
+    return db.select().from(behavioralTracking)
+      .where(eq(behavioralTracking.userId, userId))
+      .orderBy(desc(behavioralTracking.timestamp));
+  }
+
+  async getAllBehavioralTracking(): Promise<BehavioralTracking[]> {
+    return db.select().from(behavioralTracking).orderBy(desc(behavioralTracking.timestamp));
+  }
+
+  // Referral operations
+  async getReferralByCode(code: string): Promise<Referral | undefined> {
+    const [referral] = await db.select().from(referrals).where(eq(referrals.referralCode, code));
     return referral;
   }
 
-  async getReferralsByUserId(userId: string): Promise<Referral[]> {
-    return await db.select().from(referralProgram).where(eq(referralProgram.userId, userId));
+  async getReferralsByReferrer(referrerId: string): Promise<Referral[]> {
+    return db.select().from(referrals)
+      .where(eq(referrals.referrerId, referrerId))
+      .orderBy(desc(referrals.createdAt));
   }
 
-  // Admin stats
-  async getAdminStats(): Promise<{
-    totalUsers: number;
-    totalDevelopers: number;
-    totalProperties: number;
-    totalSessions: number;
-    avgPurchaseProbability: number;
-    highRiskProperties: number;
-  }> {
-    const [userCount] = await db.select({ count: sql<number>`count(*)` }).from(users);
-    const [developerCount] = await db.select({ count: sql<number>`count(*)` }).from(developers);
-    const [propertyCount] = await db.select({ count: sql<number>`count(*)` }).from(properties);
-    const [sessionCount] = await db.select({ count: sql<number>`count(*)` }).from(aiCloserSessions);
-    const [avgProb] = await db.select({ avg: sql<number>`avg(purchase_probability)` }).from(aiCloserSessions);
-    const highRisk = await db.select().from(properties).where(sql`cardinality(risk_indicators) > 0`);
-
-    return {
-      totalUsers: Number(userCount.count) || 0,
-      totalDevelopers: Number(developerCount.count) || 0,
-      totalProperties: Number(propertyCount.count) || 0,
-      totalSessions: Number(sessionCount.count) || 0,
-      avgPurchaseProbability: Number(avgProb.avg) || 0,
-      highRiskProperties: highRisk.length,
-    };
+  async createReferral(referralData: InsertReferral): Promise<Referral> {
+    const [referral] = await db.insert(referrals).values(referralData).returning();
+    return referral;
   }
 
-  // Blog operations
-  async getBlogCategories(): Promise<BlogCategory[]> {
-    return await db.select().from(blogCategories);
+  // Notification operations
+  async getNotificationsByUser(userId: string): Promise<Notification[]> {
+    return db.select().from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
   }
 
-  async createBlogCategory(categoryData: InsertBlogCategory): Promise<BlogCategory> {
-    const [category] = await db.insert(blogCategories).values(categoryData).returning();
-    return category;
+  async createNotification(notificationData: InsertNotification): Promise<Notification> {
+    const [notification] = await db.insert(notifications).values(notificationData).returning();
+    return notification;
   }
 
-  async getBlogPosts(filters?: { categoryId?: string; featured?: boolean; published?: boolean }): Promise<(BlogPost & { category?: BlogCategory })[]> {
-    let query = db.select().from(blogPosts).leftJoin(blogCategories, eq(blogPosts.categoryId, blogCategories.id));
-    
-    const conditions = [];
-    if (filters?.categoryId) {
-      conditions.push(eq(blogPosts.categoryId, filters.categoryId));
-    }
-    if (filters?.featured !== undefined) {
-      conditions.push(eq(blogPosts.featured, filters.featured));
-    }
-    if (filters?.published !== undefined) {
-      conditions.push(eq(blogPosts.published, filters.published));
-    }
-    
-    if (conditions.length > 0) {
-      query = query.where(and(...conditions)) as any;
-    }
-    
-    query = query.orderBy(desc(blogPosts.publishedAt)) as any;
-    
-    const results = await query;
-    
-    return results.map(result => ({
-      ...result.blog_posts,
-      category: result.blog_categories || undefined,
-    }));
-  }
-
-  async getBlogPost(id: string): Promise<(BlogPost & { category?: BlogCategory }) | undefined> {
-    const [result] = await db
-      .select()
-      .from(blogPosts)
-      .leftJoin(blogCategories, eq(blogPosts.categoryId, blogCategories.id))
-      .where(eq(blogPosts.id, id));
-    
-    if (!result) return undefined;
-    
-    return {
-      ...result.blog_posts,
-      category: result.blog_categories || undefined,
-    };
-  }
-
-  async getBlogPostBySlug(slug: string): Promise<(BlogPost & { category?: BlogCategory; tags?: BlogTag[] }) | undefined> {
-    const [result] = await db
-      .select()
-      .from(blogPosts)
-      .leftJoin(blogCategories, eq(blogPosts.categoryId, blogCategories.id))
-      .where(eq(blogPosts.slug, slug));
-    
-    if (!result) return undefined;
-
-    const tags = await this.getPostTags(result.blog_posts.id);
-    
-    return {
-      ...result.blog_posts,
-      category: result.blog_categories || undefined,
-      tags,
-    };
-  }
-
-  async createBlogPost(postData: InsertBlogPost): Promise<BlogPost> {
-    const [post] = await db.insert(blogPosts).values(postData).returning();
-    return post;
-  }
-
-  async updateBlogPost(id: string, postData: Partial<InsertBlogPost>): Promise<BlogPost> {
-    const [post] = await db
-      .update(blogPosts)
-      .set({ ...postData, updatedAt: new Date() })
-      .where(eq(blogPosts.id, id))
-      .returning();
-    return post;
-  }
-
-  async incrementBlogPostViews(id: string): Promise<void> {
-    await db
-      .update(blogPosts)
-      .set({ views: sql`${blogPosts.views} + 1` })
-      .where(eq(blogPosts.id, id));
-  }
-
-  async getBlogTags(): Promise<BlogTag[]> {
-    return await db.select().from(blogTags);
-  }
-
-  async createBlogTag(tagData: InsertBlogTag): Promise<BlogTag> {
-    const [tag] = await db.insert(blogTags).values(tagData).returning();
-    return tag;
-  }
-
-  async addTagToPost(postId: string, tagId: string): Promise<void> {
-    await db.insert(blogPostTags).values({ postId, tagId });
-  }
-
-  async getPostTags(postId: string): Promise<BlogTag[]> {
-    const results = await db
-      .select()
-      .from(blogPostTags)
-      .leftJoin(blogTags, eq(blogPostTags.tagId, blogTags.id))
-      .where(eq(blogPostTags.postId, postId));
-    
-    return results.map(result => result.blog_tags).filter(Boolean) as BlogTag[];
+  async markNotificationAsRead(id: string): Promise<void> {
+    await db.update(notifications)
+      .set({ read: true })
+      .where(eq(notifications.id, id));
   }
 }
 

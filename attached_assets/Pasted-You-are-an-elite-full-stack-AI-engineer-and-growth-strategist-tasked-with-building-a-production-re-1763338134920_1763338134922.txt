@@ -1,0 +1,83 @@
+You are an elite full-stack AI engineer and growth strategist tasked with building a **production-ready Arabic-first real estate intelligence SaaS platform** from zero to launch. The platform is designed to **dominate the market** using behavioral psychology, data-driven decision-making, and trust-based consulting. Build everything end-to-end including front-end, back-end, database, AI integrations, and dashboards.
+
+Target Audience:
+- Real estate clients seeking trusted advice
+- Passive investors and high-value clients
+- Developers looking for market intelligence and leads
+
+Core Objectives:
+1. Capture **all valuable market data** per region from Gemini AI (or equivalent) in JSON and store in the platform.
+2. Ensure **clients and users cannot bypass the system**; every consultation, interaction, and decision is logged and actionable.
+3. Use **behavioral and neuromarketing triggers** so every visitor is guided naturally to follow your platform, engage, and convert.
+4. Allow the admin (you) to **analyze trends, developer performance, and client decisions** in real time from a dashboard.
+5. Build trust with clients so they **always choose your advice**; no bypassing, no excuses.
+
+System Features:
+- Full authentication with **role-based access** (Admin, Client, Developer)
+- PostgreSQL database (or equivalent) with schemas:
+  - Users, Developers, Properties, Contracts, Market Data, Buyer Profiles, Behavioral Tracking, AI Sessions, Objection Responses, Referral & Rewards
+- **Admin Dashboard**:
+  - Upload and parse market data from Gemini AI JSON
+  - Track behavioral analytics: scroll depth, clicks, time-on-page, interaction patterns
+  - Evaluate developers: trust score, complaints, contract history
+  - Generate insights: property trends, price analysis, client interest heatmaps
+- **Client Interface**:
+  - Interactive consultation forms and questionnaires
+  - Automatic AI-driven recommendations based on market data
+  - File upload for contracts, legal documents, and risk analysis
+  - AI-assisted buyer profile builder
+- **AI Integration**:
+  - Gemini AI for multi-turn data extraction, analysis, and consultation
+  - Objection handling engine: responds to client concerns in real time
+- **Smart Matching Engine**:
+  - Match clients to properties, developers, and opportunities using behavior, risk tolerance, and preferences
+- **Marketing & Retention Features**:
+  - Behavioral nudges and cognitive triggers
+  - Referral system with rewards
+  - Alerts and notifications for key opportunities
+- **Front-End**:
+  - Arabic-first design (RTL), bilingual support (Arabic/English)
+  - Mobile-responsive, modern UX, color palette that conveys trust, authority, and credibility
+- **Security & Compliance**:
+  - Rate limiting, input validation, JWT protection
+  - GDPR/consent-compliant behavioral tracking
+- **Analytics**:
+  - Track all decisions, interactions, and consult history
+  - Generate reports for admin and clients
+  - Continuous improvement loop with AI insights
+
+Technical Requirements:
+- Full-stack TypeScript: React + Vite frontend, Express backend
+- Drizzle ORM or equivalent for PostgreSQL schema management
+- Gemini AI integration for market data, consultation, and decision intelligence
+- Seed scripts for initial market data and developer entries
+- Automated logging of all user interactions
+- Admin can override or update any data, view dashboards, and run reports
+
+Marketing & Growth Integration:
+- Apply **neuromarketing triggers** in UI copy and layout
+- Encourage clients to **always book consultations through the platform**
+- Prevent bypassing via mandatory tracking and behavioral gating
+- Behavioral funnels that guide users from curiosity → trust → consultation → decision
+
+Deliverables:
+1. Full project structure ready-to-run
+2. Frontend React components for all interfaces and dashboards
+3. Backend Express API endpoints for all features
+4. Drizzle ORM database schema for all tables
+5. AI integration scripts for Gemini AI
+6. Behavioral tracking scripts
+7. Referral & rewards system
+8. Seed scripts for initial data
+9. Deployment-ready configuration
+
+Goal:
+- Build a **production-ready, market-dominating platform** that **captures all client behavior and market data**, ensures **clients follow your guidance**, and provides **actionable insights for the admin**, using **every advanced neuromarketing and behavioral science technique** available.
+
+Instructions:
+- Start from zero
+- Create all required folders, files, and configurations
+- Implement all APIs, front-end, and dashboards
+- Integrate AI and behavioral analytics
+- Ensure everything is logged and trackable
+- Make the platform fully functional at launch
