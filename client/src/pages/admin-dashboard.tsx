@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Users,
   Building2,
@@ -18,26 +19,28 @@ import {
   UserCircle,
   FileText,
   BarChart3,
-  Settings
+  Settings,
+  RefreshCw,
+  XCircle
 } from "lucide-react";
 import type { User, Developer, Payment, MarketData } from "@shared/schema";
 
 export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: users = [], isLoading: usersLoading } = useQuery<User[]>({
+  const { data: users = [], isLoading: usersLoading, isError: usersError, refetch: refetchUsers } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
 
-  const { data: developers = [], isLoading: developersLoading } = useQuery<Developer[]>({
+  const { data: developers = [], isLoading: developersLoading, isError: developersError } = useQuery<Developer[]>({
     queryKey: ["/api/admin/developers"],
   });
 
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[]>({
+  const { data: payments = [], isLoading: paymentsLoading, isError: paymentsError } = useQuery<Payment[]>({
     queryKey: ["/api/admin/payments"],
   });
 
-  const { data: marketData = [], isLoading: marketDataLoading } = useQuery<MarketData[]>({
+  const { data: marketData = [], isLoading: marketDataLoading, isError: marketDataError } = useQuery<MarketData[]>({
     queryKey: ["/api/admin/market-data"],
   });
 
@@ -172,8 +175,8 @@ export default function AdminDashboard() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Developers
             </CardTitle>
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <Building2 className="h-5 w-5 text-accent" />
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{backgroundColor: 'rgba(255,215,0,0.1)'}}>
+              <Building2 className="h-5 w-5" style={{color: '#ffd700'}} />
             </div>
           </CardHeader>
           <CardContent>
@@ -233,8 +236,8 @@ export default function AdminDashboard() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
-                    <Building2 className="h-6 w-6 text-accent" />
+                  <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{backgroundColor: 'rgba(255,215,0,0.1)'}}>
+                    <Building2 className="h-6 w-6" style={{color: '#ffd700'}} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Developers</h3>
@@ -288,8 +291,26 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {usersLoading ? (
-            <div className="space-y-3">
+          {usersError ? (
+            <Alert variant="destructive" data-testid="alert-users-error">
+              <XCircle className="h-4 w-4" />
+              <AlertTitle>Error Loading Users</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>Failed to load users data. Please try again.</p>
+                <Button 
+                  onClick={() => refetchUsers()} 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  data-testid="button-retry-users"
+                >
+                  <RefreshCw className="h-3 w-3 me-2" />
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : usersLoading ? (
+            <div className="space-y-3" data-testid="skeleton-users-loading">
               {[1, 2, 3, 4, 5].map(i => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}

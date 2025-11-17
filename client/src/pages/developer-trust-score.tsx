@@ -29,17 +29,17 @@ export default function DeveloperTrustScore() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
+            <Card style={{background: 'linear-gradient(to bottom right, rgba(255,215,0,0.15), rgba(255,215,0,0.05))'}}>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>نقاط الثقة</span>
-                  <Award className="w-8 h-8 text-accent" />
+                  <Award className="w-8 h-8" style={{color: '#ffd700'}} />
                 </CardTitle>
                 <CardDescription>تقييمك الحالي</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center">
-                  <div className="text-6xl font-bold text-accent mb-2" data-testid="text-trust-score">
+                  <div className="text-6xl font-bold metallic-gold mb-2" data-testid="text-trust-score">
                     {trustScore.toFixed(1)}
                   </div>
                   <p className="text-sm text-muted-foreground">من 5.0</p>
@@ -85,7 +85,7 @@ export default function DeveloperTrustScore() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">نسبة النجاح</span>
-                  <span className="text-2xl font-bold text-accent" data-testid="text-success-rate">
+                  <span className="text-2xl font-bold metallic-gold" data-testid="text-success-rate">
                     {developer?.totalDeals ? 
                       Math.round((developer.successfulDeals / developer.totalDeals) * 100) : 0}%
                   </span>

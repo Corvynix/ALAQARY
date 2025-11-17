@@ -11,35 +11,35 @@
   --elevate-2: rgba(135, 206, 250, .12);
   --background: 0 0% 0%;
   --foreground: 0 0% 100%;
-  --border: 200 100% 25%;
+  --border: 197 71% 73%;
   --card: 0 0% 4%;
   --card-foreground: 0 0% 100%;
-  --card-border: 200 100% 30%;
+  --card-border: 197 71% 73%;
   --sidebar: 0 0% 3%;
   --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 200 100% 35%;
-  --sidebar-primary: 200 100% 60%;
+  --sidebar-border: 197 71% 73%;
+  --sidebar-primary: 197 71% 73%;
   --sidebar-primary-foreground: 0 0% 0%;
   --sidebar-accent: 0 0% 8%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-ring: 200 100% 60%;
+  --sidebar-ring: 197 71% 73%;
   --popover: 0 0% 3%;
   --popover-foreground: 0 0% 100%;
-  --popover-border: 200 100% 35%;
-  --primary: 200 100% 60%;
+  --popover-border: 197 71% 73%;
+  --primary: 197 71% 73%;
   --primary-foreground: 0 0% 0%;
   --secondary: 0 0% 10%;
   --secondary-foreground: 0 0% 100%;
   --muted: 0 0% 12%;
   --muted-foreground: 0 0% 65%;
-  --accent: 45 100% 55%;
+  --accent: 43 96% 56%;
   --accent-foreground: 0 0% 0%;
   --destructive: 0 80% 50%;
   --destructive-foreground: 0 0% 100%;
-  --input: 200 100% 30%;
-  --ring: 200 100% 60%;
-  --chart-1: 200 100% 60%;
-  --chart-2: 45 100% 55%;
+  --input: 197 71% 73%;
+  --ring: 197 71% 73%;
+  --chart-1: 197 71% 73%;
+  --chart-2: 43 96% 56%;
   --chart-3: 160 100% 45%;
   --chart-4: 280 85% 60%;
   --chart-5: 30 100% 50%;
@@ -55,7 +55,7 @@
   --shadow-lg: 0px 0px 32px 0px rgba(135, 206, 250, 0.45), 0px 8px 12px -1px rgba(135, 206, 250, 0.3);
   --shadow-xl: 0px 0px 40px 0px rgba(135, 206, 250, 0.5), 0px 12px 16px -1px rgba(135, 206, 250, 0.35);
   --shadow-2xl: 0px 0px 50px 0px rgba(135, 206, 250, 0.6);
-  --gold-glow: 0px 0px 20px rgba(255, 215, 0, 0.6);
+  --gold-glow: 0px 0px 30px rgba(255, 215, 0, 0.8), 0px 0px 60px rgba(255, 215, 0, 0.4);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -96,33 +96,33 @@
   --elevate-2: rgba(135, 206, 250, .12);
   --background: 0 0% 0%;
   --foreground: 0 0% 100%;
-  --border: 200 100% 25%;
+  --border: 197 71% 73%;
   --card: 0 0% 4%;
   --card-foreground: 0 0% 100%;
-  --card-border: 200 100% 30%;
+  --card-border: 197 71% 73%;
   --sidebar: 0 0% 3%;
   --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 200 100% 35%;
-  --sidebar-primary: 200 100% 60%;
+  --sidebar-border: 197 71% 73%;
+  --sidebar-primary: 197 71% 73%;
   --sidebar-primary-foreground: 0 0% 0%;
   --sidebar-accent: 0 0% 8%;
   --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-ring: 200 100% 60%;
+  --sidebar-ring: 197 71% 73%;
   --popover: 0 0% 3%;
   --popover-foreground: 0 0% 100%;
-  --popover-border: 200 100% 35%;
-  --primary: 200 100% 60%;
+  --popover-border: 197 71% 73%;
+  --primary: 197 71% 73%;
   --primary-foreground: 0 0% 0%;
   --secondary: 0 0% 10%;
   --secondary-foreground: 0 0% 100%;
   --muted: 0 0% 12%;
   --muted-foreground: 0 0% 65%;
-  --accent: 45 100% 55%;
+  --accent: 43 96% 56%;
   --accent-foreground: 0 0% 0%;
   --destructive: 0 80% 50%;
   --destructive-foreground: 0 0% 100%;
-  --input: 200 100% 30%;
-  --ring: 200 100% 60%;
+  --input: 197 71% 73%;
+  --ring: 197 71% 73%;
   --chart-1: 200 100% 60%;
   --chart-2: 45 100% 55%;
   --chart-3: 160 100% 45%;
@@ -743,6 +743,56 @@
 
   .animate-spin-slow {
     animation: spin 2s linear infinite;
+  }
+
+  /* Metallic Gold Shine Animation */
+  @keyframes metallic-shine {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  .metallic-gold {
+    background: linear-gradient(
+      110deg,
+      #b8860b 0%,
+      #daa520 25%,
+      #ffd700 45%,
+      #ffed4e 50%,
+      #fff9e6 55%,
+      #ffd700 65%,
+      #daa520 75%,
+      #b8860b 100%
+    );
+    background-size: 200% 100%;
+    animation: metallic-shine 3s linear infinite;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.6));
+  }
+
+  .metallic-gold-bg {
+    background: linear-gradient(
+      110deg,
+      #b8860b 0%,
+      #daa520 25%,
+      #ffd700 45%,
+      #ffed4e 50%,
+      #fff9e6 55%,
+      #ffd700 65%,
+      #daa520 75%,
+      #b8860b 100%
+    );
+    background-size: 200% 100%;
+    animation: metallic-shine 3s linear infinite;
+    box-shadow: 
+      0 0 30px rgba(255, 215, 0, 0.5),
+      inset 0 2px 10px rgba(255, 255, 255, 0.3),
+      inset 0 -2px 10px rgba(0, 0, 0, 0.3);
   }
 
   /* Button loading state */

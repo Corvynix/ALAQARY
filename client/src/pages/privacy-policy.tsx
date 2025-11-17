@@ -86,7 +86,7 @@ export default function PrivacyPolicy() {
             </p>
             <ul className="list-disc list-inside space-y-2 text-foreground/90">
               <li>{isRTL ? 'المطورين العقاريين المعتمدين على منصتنا' : 'Verified property developers on our platform'}</li>
-              <li>{isRTL ? 'مقدمي خدمات الدفع (Stripe، Vodafone Cash)' : 'Payment processors (Stripe, Vodafone Cash)'}</li>
+              <li>{isRTL ? 'مقدمي خدمات الدفع (Vodafone Cash)' : 'Payment processors (Vodafone Cash)'}</li>
               <li>{isRTL ? 'مقدمي الخدمات التقنية لتشغيل المنصة' : 'Technical service providers who operate our platform'}</li>
               <li>{isRTL ? 'السلطات القانونية عند الحاجة' : 'Legal authorities when required by law'}</li>
             </ul>

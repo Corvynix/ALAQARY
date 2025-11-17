@@ -100,7 +100,7 @@ export default function AdminPayments() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               مدفوعات معلقة (الصفحة الحالية)
             </CardTitle>
-            <Clock className="h-5 w-5 text-accent" />
+            <Clock className="h-5 w-5" style={{color: '#ffd700'}} />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground" data-testid="text-pending-count">
@@ -157,13 +157,13 @@ export default function AdminPayments() {
                       payment.paymentStatus === 'completed' 
                         ? 'bg-chart-3/10' 
                         : payment.paymentStatus === 'pending'
-                        ? 'bg-accent/10'
+                        ? ''
                         : 'bg-destructive/10'
-                    }`}>
+                    }`} style={payment.paymentStatus === 'pending' ? {backgroundColor: 'rgba(255,215,0,0.1)'} : {}}>
                       {payment.paymentStatus === 'completed' ? (
                         <CheckCircle2 className="w-6 h-6 text-chart-3" />
                       ) : payment.paymentStatus === 'pending' ? (
-                        <Clock className="w-6 h-6 text-accent" />
+                        <Clock className="w-6 h-6" style={{color: '#ffd700'}} />
                       ) : (
                         <AlertCircle className="w-6 h-6 text-destructive" />
                       )}

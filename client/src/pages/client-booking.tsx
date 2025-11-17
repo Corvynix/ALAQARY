@@ -227,11 +227,11 @@ export default function ClientBooking() {
     return (
       <div className="p-6 md:p-8">
         <div className="max-w-2xl mx-auto">
-          <Card className="border-accent bg-accent/5">
+          <Card className="border-2" style={{borderColor: 'rgba(255,215,0,0.4)', backgroundColor: 'rgba(255,215,0,0.05)'}}>
             <CardContent className="p-8">
               <div className="text-center space-y-6">
-                <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-12 h-12 text-accent" />
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{backgroundColor: 'rgba(255,215,0,0.2)'}}>
+                  <CheckCircle2 className="w-12 h-12" style={{color: '#ffd700'}} />
                 </div>
                 
                 <div>
@@ -277,7 +277,7 @@ export default function ClientBooking() {
                     </p>
                     <div className="bg-background rounded-lg p-4 space-y-2">
                       <div className="flex items-center gap-3">
-                        <Phone className="w-5 h-5 text-accent" />
+                        <Phone className="w-5 h-5" style={{color: '#ffd700'}} />
                         <div>
                           <div className="text-sm text-muted-foreground">رقم واتساب:</div>
                           <div className="text-2xl font-bold text-foreground" data-testid="text-whatsapp-number">01030535955</div>
@@ -959,7 +959,7 @@ export default function ClientBooking() {
                         data-testid="calendar-date-picker"
                       />
                       {selectedDate && (
-                        <div className="mt-4 p-4 bg-accent/10 rounded-lg">
+                        <div className="mt-4 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,215,0,0.1)'}}>
                           <p className="text-sm text-muted-foreground mb-1">التاريخ المحدد:</p>
                           <p className="text-lg font-medium text-foreground">
                             {format(selectedDate, "PPP")}
@@ -986,7 +986,7 @@ export default function ClientBooking() {
                           ))}
                         </div>
                         {selectedTime && (
-                          <div className="mt-4 p-4 bg-accent/10 rounded-lg">
+                          <div className="mt-4 p-4 rounded-lg" style={{backgroundColor: 'rgba(255,215,0,0.1)'}}>
                             <p className="text-sm text-muted-foreground mb-1">الوقت المحدد:</p>
                             <p className="text-lg font-medium text-foreground">
                               {TIME_SLOTS.find(t => t.value === selectedTime)?.label}

@@ -62,7 +62,7 @@ export default function AdminMarketUpload() {
               <Button
                 onClick={() => uploadMutation.mutate(jsonData)}
                 disabled={!jsonData.trim() || uploadMutation.isPending}
-                className="bg-accent hover:bg-accent/90"
+                className="metallic-gold-bg text-black border-0"
                 data-testid="button-upload"
               >
                 {uploadMutation.isPending ? (

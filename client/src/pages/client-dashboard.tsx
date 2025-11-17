@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -14,7 +15,9 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
-  Plus
+  Plus,
+  RefreshCw,
+  XCircle
 } from "lucide-react";
 import type { BuyerProfile, Consultation, Payment } from "@shared/schema";
 
@@ -22,19 +25,19 @@ export default function ClientDashboard() {
   const { t } = useI18n();
   const { user } = useAuth();
 
-  const { data: profile, isLoading: profileLoading } = useQuery<BuyerProfile>({
+  const { data: profile, isLoading: profileLoading, isError: profileError, refetch: refetchProfile } = useQuery<BuyerProfile>({
     queryKey: ["/api/client/profile"],
   });
 
-  const { data: consultations = [], isLoading: consultationsLoading } = useQuery<Consultation[]>({
+  const { data: consultations = [], isLoading: consultationsLoading, isError: consultationsError, refetch: refetchConsultations } = useQuery<Consultation[]>({
     queryKey: ["/api/client/consultations"],
   });
 
-  const { data: payments = [], isLoading: paymentsLoading } = useQuery<Payment[]>({
+  const { data: payments = [], isLoading: paymentsLoading, isError: paymentsError, refetch: refetchPayments } = useQuery<Payment[]>({
     queryKey: ["/api/client/payments"],
   });
 
-  const { data: savedProperties = [], isLoading: propertiesLoading } = useQuery<any[]>({
+  const { data: savedProperties = [], isLoading: propertiesLoading, isError: propertiesError, refetch: refetchProperties } = useQuery<any[]>({
     queryKey: ["/api/client/saved-properties"],
   });
 
@@ -77,7 +80,7 @@ export default function ClientDashboard() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               {t("dashboard.stats.properties")}
             </CardTitle>
-            <Building2 className="h-5 w-5 text-accent" />
+            <Building2 className="h-5 w-5" style={{color: '#ffd700'}} />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{totalSaved}</div>
@@ -120,16 +123,16 @@ export default function ClientDashboard() {
 
       {/* Profile Completion Alert */}
       {profileCompletion < 100 && (
-        <Card className="border-accent bg-accent/5">
+        <Card className="border-2" style={{borderColor: 'rgba(255,215,0,0.4)', backgroundColor: 'rgba(255,215,0,0.05)'}}>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <AlertCircle className="h-6 w-6 text-accent flex-shrink-0 mt-1" />
+              <AlertCircle className="h-6 w-6 flex-shrink-0 mt-1" style={{color: '#ffd700'}} />
               <div className="flex-1">
                 <h3 className="font-bold text-foreground mb-2">أكمل ملفك الشخصي</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   لنتمكن من تقديم توصيات دقيقة لك، يرجى إكمال ملفك الشخصي ({profileCompletion}% مكتمل)
                 </p>
-                <Button className="bg-accent hover:bg-accent/90" data-testid="button-complete-profile">
+                <Button className="metallic-gold-bg text-black border-0" data-testid="button-complete-profile">
                   أكمل الآن
                 </Button>
               </div>
@@ -149,8 +152,26 @@ export default function ClientDashboard() {
             <CardDescription>عقارات مختارة بناءً على تفضيلاتك</CardDescription>
           </CardHeader>
           <CardContent>
-            {propertiesLoading ? (
-              <div className="space-y-4">
+            {propertiesError ? (
+              <Alert variant="destructive" data-testid="alert-properties-error">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>Error / خطأ</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>Failed to load saved properties / فشل تحميل العقارات المحفوظة</p>
+                  <Button 
+                    onClick={() => refetchProperties()} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    data-testid="button-retry-properties"
+                  >
+                    <RefreshCw className="h-3 w-3 me-2" />
+                    Retry / أعد المحاولة
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : propertiesLoading ? (
+              <div className="space-y-4" data-testid="skeleton-properties-loading">
                 <Skeleton className="h-24 w-full" />
                 <Skeleton className="h-24 w-full" />
               </div>
@@ -186,8 +207,26 @@ export default function ClientDashboard() {
             <CardDescription>آخر التحديثات والإشعارات</CardDescription>
           </CardHeader>
           <CardContent>
-            {consultationsLoading ? (
-              <div className="space-y-4">
+            {consultationsError ? (
+              <Alert variant="destructive" data-testid="alert-consultations-error">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>Error / خطأ</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>Failed to load consultations / فشل تحميل الاستشارات</p>
+                  <Button 
+                    onClick={() => refetchConsultations()} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    data-testid="button-retry-consultations"
+                  >
+                    <RefreshCw className="h-3 w-3 me-2" />
+                    Retry / أعد المحاولة
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : consultationsLoading ? (
+              <div className="space-y-4" data-testid="skeleton-consultations-loading">
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-20 w-full" />
               </div>
@@ -195,7 +234,7 @@ export default function ClientDashboard() {
               <div className="text-center py-8">
                 <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground mb-4">لم تبدأ أي استشارة بعد</p>
-                <Button className="bg-accent hover:bg-accent/90" data-testid="button-new-consultation">
+                <Button className="metallic-gold-bg text-black border-0" data-testid="button-new-consultation">
                   <Plus className="w-4 h-4 me-2" />
                   ابدأ استشارة جديدة
                 </Button>
@@ -240,7 +279,7 @@ export default function ClientDashboard() {
               <span>استشارة جديدة</span>
             </Button>
             <Button variant="outline" className="h-auto flex-col gap-2 p-6" data-testid="button-quick-browse">
-              <Building2 className="h-6 w-6 text-accent" />
+              <Building2 className="h-6 w-6" style={{color: '#ffd700'}} />
               <span>تصفح العقارات</span>
             </Button>
             <Button variant="outline" className="h-auto flex-col gap-2 p-6" data-testid="button-quick-market">

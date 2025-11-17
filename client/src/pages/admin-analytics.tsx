@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Users, Eye, Clock } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { BarChart3, Users, Eye, Clock, XCircle, RefreshCw } from "lucide-react";
 
 export default function AdminAnalytics() {
-  const { data: tracking = [], isLoading } = useQuery<any[]>({
+  const { data: tracking = [], isLoading, isError, refetch } = useQuery<any[]>({
     queryKey: ["/api/admin/behavioral-tracking"],
   });
 
@@ -47,7 +49,7 @@ export default function AdminAnalytics() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               متوسط عمق التمرير
             </CardTitle>
-            <Eye className="h-5 w-5 text-accent" />
+            <Eye className="h-5 w-5" style={{color: '#ffd700'}} />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground" data-testid="text-avg-scroll">
@@ -77,8 +79,26 @@ export default function AdminAnalytics() {
           <CardDescription>آخر التفاعلات المسجلة</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
+          {isError ? (
+            <Alert variant="destructive" data-testid="alert-tracking-error">
+              <XCircle className="h-4 w-4" />
+              <AlertTitle>Error / خطأ</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>Failed to load analytics data / فشل تحميل بيانات التحليلات</p>
+                <Button 
+                  onClick={() => refetch()} 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-2"
+                  data-testid="button-retry-tracking"
+                >
+                  <RefreshCw className="h-3 w-3 me-2" />
+                  Retry / أعد المحاولة
+                </Button>
+              </AlertDescription>
+            </Alert>
+          ) : isLoading ? (
+            <div className="space-y-4" data-testid="skeleton-tracking-loading">
               {[...Array(5)].map((_, i) => (
                 <Skeleton key={i} className="h-16 w-full" />
               ))}

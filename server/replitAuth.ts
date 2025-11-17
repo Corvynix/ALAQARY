@@ -1,13 +1,35 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
-
 import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import csurf from "csurf";
+import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
+import { logger } from "./logger";
+
+/**
+ * Rate limiting for client/developer authentication endpoints
+ * Limits: 10 login attempts per 15 minutes per IP to prevent brute force attacks
+ */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many authentication attempts from this IP, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn({
+      ip: req.ip,
+      path: req.path,
+    }, 'Auth rate limit exceeded');
+    res.status(429).json({
+      message: "Too many authentication attempts from this IP, please try again later.",
+    });
+  },
+});
 
 const getOidcConfig = memoize(
   async () => {
@@ -112,7 +134,8 @@ export async function setupAuth(app: Express) {
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
-  app.get("/api/login", (req, res, next) => {
+  // Apply rate limiting to login endpoint (10 attempts per 15 minutes)
+  app.get("/api/login", authLimiter, (req, res, next) => {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
@@ -120,7 +143,8 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.get("/api/callback", (req, res, next) => {
+  // Apply rate limiting to callback endpoint (10 attempts per 15 minutes)
+  app.get("/api/callback", authLimiter, (req, res, next) => {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",
@@ -128,6 +152,7 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  // Logout endpoint - no rate limiting needed as it's not a brute-force vector
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
       res.redirect(

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Building2,
@@ -13,22 +14,24 @@ import {
   Plus,
   Eye,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw,
+  XCircle
 } from "lucide-react";
 import type { Developer, Property } from "@shared/schema";
 
 export default function DeveloperDashboard() {
   const { user } = useAuth();
 
-  const { data: developer, isLoading: developerLoading } = useQuery<Developer>({
+  const { data: developer, isLoading: developerLoading, isError: developerError } = useQuery<Developer>({
     queryKey: ["/api/developer/profile"],
   });
 
-  const { data: properties = [], isLoading: propertiesLoading } = useQuery<Property[]>({
+  const { data: properties = [], isLoading: propertiesLoading, isError: propertiesError, refetch: refetchProperties } = useQuery<Property[]>({
     queryKey: ["/api/developer/properties"],
   });
 
-  const { data: leads = [], isLoading: leadsLoading } = useQuery<any[]>({
+  const { data: leads = [], isLoading: leadsLoading, isError: leadsError, refetch: refetchLeads } = useQuery<any[]>({
     queryKey: ["/api/developer/leads"],
   });
 
@@ -55,7 +58,7 @@ export default function DeveloperDashboard() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               العقارات
             </CardTitle>
-            <Building2 className="h-5 w-5 text-accent" />
+            <Building2 className="h-5 w-5" style={{color: '#ffd700'}} />
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{properties.length}</div>
@@ -111,16 +114,16 @@ export default function DeveloperDashboard() {
 
       {/* Verification Status */}
       {!developer?.verified && (
-        <Card className="border-accent bg-accent/5">
+        <Card className="border-2" style={{borderColor: 'rgba(255,215,0,0.4)', backgroundColor: 'rgba(255,215,0,0.05)'}}>
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
-              <AlertCircle className="h-6 w-6 text-accent flex-shrink-0 mt-1" />
+              <AlertCircle className="h-6 w-6 flex-shrink-0 mt-1" style={{color: '#ffd700'}} />
               <div className="flex-1">
                 <h3 className="font-bold text-foreground mb-2">حساب غير موثق</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   قم بتوثيق حسابك للحصول على المزيد من الثقة من العملاء وزيادة فرص البيع
                 </p>
-                <Button className="bg-accent hover:bg-accent/90" data-testid="button-verify-account">
+                <Button className="metallic-gold-bg text-black border-0" data-testid="button-verify-account">
                   طلب التوثيق
                 </Button>
               </div>
@@ -135,7 +138,7 @@ export default function DeveloperDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>عقاراتي</span>
-              <Button size="sm" className="bg-accent hover:bg-accent/90" data-testid="button-add-property">
+              <Button size="sm" className="metallic-gold-bg text-black border-0" data-testid="button-add-property">
                 <Plus className="h-4 w-4 me-2" />
                 إضافة عقار
               </Button>
@@ -143,8 +146,26 @@ export default function DeveloperDashboard() {
             <CardDescription>إدارة قوائم العقارات الخاصة بك</CardDescription>
           </CardHeader>
           <CardContent>
-            {propertiesLoading ? (
-              <div className="space-y-4">
+            {propertiesError ? (
+              <Alert variant="destructive" data-testid="alert-properties-error">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>خطأ / Error</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>فشل تحميل العقارات / Failed to load properties</p>
+                  <Button 
+                    onClick={() => refetchProperties()} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    data-testid="button-retry-properties"
+                  >
+                    <RefreshCw className="h-3 w-3 me-2" />
+                    أعد المحاولة / Retry
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : propertiesLoading ? (
+              <div className="space-y-4" data-testid="skeleton-properties-loading">
                 <Skeleton className="h-24 w-full" />
                 <Skeleton className="h-24 w-full" />
               </div>
@@ -193,8 +214,26 @@ export default function DeveloperDashboard() {
             <CardDescription>العملاء المهتمون بعقاراتك</CardDescription>
           </CardHeader>
           <CardContent>
-            {leadsLoading ? (
-              <div className="space-y-4">
+            {leadsError ? (
+              <Alert variant="destructive" data-testid="alert-leads-error">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>خطأ / Error</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <p>فشل تحميل العملاء المحتملين / Failed to load leads</p>
+                  <Button 
+                    onClick={() => refetchLeads()} 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-2"
+                    data-testid="button-retry-leads"
+                  >
+                    <RefreshCw className="h-3 w-3 me-2" />
+                    أعد المحاولة / Retry
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            ) : leadsLoading ? (
+              <div className="space-y-4" data-testid="skeleton-leads-loading">
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-20 w-full" />
               </div>

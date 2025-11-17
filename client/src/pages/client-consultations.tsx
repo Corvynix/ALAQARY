@@ -3,15 +3,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { MessageSquare, Plus, CheckCircle2, Clock } from "lucide-react";
+import { MessageSquare, Plus, CheckCircle2, Clock, XCircle, RefreshCw } from "lucide-react";
 import type { Consultation } from "@shared/schema";
 
 export default function ClientConsultations() {
   const { toast } = useToast();
 
-  const { data: consultations = [], isLoading } = useQuery<Consultation[]>({
+  const { data: consultations = [], isLoading, isError, refetch } = useQuery<Consultation[]>({
     queryKey: ["/api/client/consultations"],
   });
 
@@ -47,7 +48,7 @@ export default function ClientConsultations() {
           <p className="text-muted-foreground text-lg">إدارة جلسات الاستشارات الخاصة بك</p>
         </div>
         <Button
-          className="bg-accent hover:bg-accent/90"
+          className="metallic-gold-bg text-black border-0"
           onClick={() => createConsultationMutation.mutate()}
           disabled={createConsultationMutation.isPending}
           data-testid="button-new-consultation"
@@ -57,8 +58,26 @@ export default function ClientConsultations() {
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {isError ? (
+        <Alert variant="destructive" data-testid="alert-consultations-error">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>خطأ / Error</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>فشل تحميل الاستشارات / Failed to load consultations</p>
+            <Button 
+              onClick={() => refetch()} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              data-testid="button-retry-consultations"
+            >
+              <RefreshCw className="h-3 w-3 me-2" />
+              أعد المحاولة / Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="skeleton-consultations-loading">
           <Skeleton className="h-48 w-full" />
           <Skeleton className="h-48 w-full" />
         </div>
@@ -71,7 +90,7 @@ export default function ClientConsultations() {
               ابدأ أول استشارة لك للحصول على توصيات مخصصة
             </p>
             <Button
-              className="bg-accent hover:bg-accent/90"
+              className="metallic-gold-bg text-black border-0"
               onClick={() => createConsultationMutation.mutate()}
               disabled={createConsultationMutation.isPending}
               data-testid="button-first-consultation"

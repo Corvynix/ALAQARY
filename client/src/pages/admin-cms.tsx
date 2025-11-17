@@ -67,7 +67,7 @@ export default function AdminCMS() {
       case 'image':
         return 'bg-chart-2/10 text-chart-2';
       case 'video':
-        return 'bg-accent/10 text-accent';
+        return 'bg-chart-2/10 text-chart-2';
       case 'json':
         return 'bg-chart-3/10 text-chart-3';
       default:

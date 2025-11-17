@@ -25,10 +25,10 @@ export default function ClientReferrals() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-gradient-to-br from-accent/10 to-accent/5">
+        <Card style={{background: 'linear-gradient(to bottom right, rgba(255,215,0,0.15), rgba(255,215,0,0.05))'}}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Gift className="w-5 h-5 text-accent" />
+              <Gift className="w-5 h-5" style={{color: '#ffd700'}} />
               كود الإحالة الخاص بك
             </CardTitle>
           </CardHeader>
@@ -67,7 +67,7 @@ export default function ClientReferrals() {
               </div>
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
                 <div className="flex items-center gap-3">
-                  <Gift className="w-8 h-8 text-accent" />
+                  <Gift className="w-8 h-8" style={{color: '#ffd700'}} />
                   <div>
                     <p className="font-medium text-foreground" data-testid="text-rewards">0 جنيه</p>
                     <p className="text-sm text-muted-foreground">المكافآت المكتسبة</p>

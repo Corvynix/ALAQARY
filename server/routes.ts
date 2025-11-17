@@ -6,22 +6,111 @@ import { insertPaymentSchema, insertConsultationSchema, insertConsultationBookin
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import { logger, sanitizeError } from "./logger";
 
-// Stricter rate limiting for admin authentication
+const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * Rate limiting configuration for admin authentication endpoints
+ * Max 5 attempts per 15 minutes to prevent brute force attacks
+ */
 const adminAuthLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 5,
   message: "Too many login attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Rate limiting configuration for client/developer authentication endpoints
+ * Max 10 attempts per 15 minutes - slightly more lenient than admin
+ */
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: "Too many authentication attempts, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Validation schemas for query parameters and request bodies
+ */
+const paginationSchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  search: z.string().optional(),
+  role: z.string().optional(),
+});
+
+const idParamSchema = z.object({
+  id: z.string().uuid(),
+});
+
+const regionParamSchema = z.object({
+  region: z.string().min(1).max(100),
+});
+
+const updateNotesSchema = z.object({
+  notes: z.string().max(5000).optional().default(''),
+});
+
+const updateStatusSchema = z.object({
+  status: z.string().min(1),
+});
+
+const updatePaymentStatusSchema = z.object({
+  status: z.string().min(1),
+  phone: z.string().optional(),
 });
 
 // Middleware to require admin session
 const requireAdminSession = (req: any, res: any, next: any) => {
   const adminUser = req.session?.adminUser;
   if (!adminUser) {
+    logger.warn({ path: req.path, ip: req.ip }, 'Unauthorized admin access attempt');
     return res.status(401).json({ message: "Admin authentication required" });
   }
   next();
 };
+
+// Middleware to enforce password change requirement
+const requirePasswordChanged = (req: any, res: any, next: any) => {
+  const adminUser = req.session?.adminUser;
+  
+  if (!adminUser) {
+    logger.warn({ path: req.path, ip: req.ip }, 'Unauthenticated admin access attempt');
+    return res.status(401).json({ message: "Admin authentication required" });
+  }
+  
+  if (adminUser.mustChangePassword && req.path !== '/api/admin/change-password' && req.path !== '/api/admin/logout') {
+    logger.warn({ 
+      username: adminUser.username, 
+      path: req.path 
+    }, 'Admin must change password before accessing other routes');
+    return res.status(403).json({ 
+      message: "You must change your password before accessing other features",
+      mustChangePassword: true 
+    });
+  }
+  
+  next();
+};
+
+// Generate a secure random password
+function generateSecurePassword(length: number = 16): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%^&*';
+  let password = '';
+  const randomBytes = crypto.randomBytes(length);
+  
+  for (let i = 0; i < length; i++) {
+    password += chars[randomBytes[i] % chars.length];
+  }
+  
+  return password;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth and CSRF middleware (CSRF is now initialized inside setupAuth)
@@ -29,7 +118,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // CSRF token endpoint
   app.get('/api/csrf-token', (req: any, res) => {
-    res.json({ csrfToken: req.csrfToken() });
+    try {
+      res.json({ csrfToken: req.csrfToken() });
+    } catch (error) {
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Failed to generate CSRF token');
+      res.status(500).json({ message: "Failed to generate CSRF token", requestId: req.id });
+    }
   });
 
   // ==================== AUTH ROUTES ====================
@@ -37,10 +131,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
+      
+      if (!user) {
+        logger.warn({ requestId: req.id, userId }, 'User not found');
+        return res.status(404).json({ message: "User not found", requestId: req.id });
+      }
+      
       res.json(user);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error fetching user');
+      res.status(500).json({ message: "Failed to fetch user", requestId: req.id });
     }
   });
 
@@ -52,24 +152,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const expectedSecret = process.env.ADMIN_INIT_SECRET;
       
       if (!expectedSecret) {
-        console.error("ADMIN_INIT_SECRET environment variable not set");
+        logger.error("ADMIN_INIT_SECRET environment variable not set");
         return res.status(500).json({ message: "Server misconfiguration - admin initialization unavailable" });
       }
       
       const { initSecret } = req.body;
       
       if (initSecret !== expectedSecret) {
+        logger.warn({ ip: req.ip }, 'Invalid admin initialization secret attempt');
         return res.status(401).json({ message: "Invalid initialization secret" });
       }
       
       const existingAdmin = await storage.getAdminByUsername('admin');
       
       if (existingAdmin) {
+        logger.warn('Attempt to reinitialize existing admin account');
         return res.status(400).json({ message: "Admin already initialized" });
       }
       
-      const defaultPassword = 'admin';
-      const passwordHash = await bcrypt.hash(defaultPassword, 10);
+      const bootstrapPassword = generateSecurePassword(16);
+      const passwordHash = await bcrypt.hash(bootstrapPassword, 10);
       
       await storage.createAdminCredential({
         username: 'admin',
@@ -77,9 +179,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mustChangePassword: true,
       });
       
-      res.json({ message: "Admin account created successfully" });
+      logger.warn('\n' + '='.repeat(80));
+      logger.warn('🔐 ADMIN ACCOUNT CREATED');
+      logger.warn('='.repeat(80));
+      logger.warn(`Username: admin`);
+      logger.warn(`Bootstrap Password: ${bootstrapPassword}`);
+      logger.warn('⚠️  IMPORTANT: Save this password immediately!');
+      logger.warn('⚠️  You will be required to change it on first login');
+      logger.warn('⚠️  This password will NOT be shown again!');
+      logger.warn('='.repeat(80) + '\n');
+      
+      res.json({ 
+        message: "Admin account created successfully",
+        username: "admin",
+        bootstrapPassword,
+        mustChangePassword: true 
+      });
     } catch (error) {
-      console.error("Error initializing admin:", error);
+      logger.error({ error }, "Error initializing admin");
       res.status(500).json({ message: "Failed to initialize admin" });
     }
   });
@@ -90,25 +207,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { username, password } = req.body;
       
       if (!username || !password) {
+        logger.warn({ ip: req.ip }, 'Admin login attempt with missing credentials');
         return res.status(400).json({ message: "Username and password required" });
       }
       
       const admin = await storage.getAdminByUsername(username);
       
       if (!admin) {
+        logger.warn({ username, ip: req.ip }, 'Admin login attempt with non-existent username');
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
       const isValid = await storage.verifyAdminPassword(username, password);
       
       if (!isValid) {
+        logger.warn({ username, ip: req.ip }, 'Admin login attempt with invalid password');
         return res.status(401).json({ message: "Invalid credentials" });
       }
       
       // Regenerate session to prevent session fixation attacks
       req.session.regenerate((err) => {
         if (err) {
-          console.error("Error regenerating session:", err);
+          logger.error({ error: err }, "Error regenerating session");
           return res.status(500).json({ message: "Login failed" });
         }
         
@@ -119,9 +239,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         req.session.save((err) => {
           if (err) {
-            console.error("Error saving session:", err);
+            logger.error({ error: err }, "Error saving session");
             return res.status(500).json({ message: "Login failed" });
           }
+          
+          logger.info({ username: admin.username }, 'Admin logged in successfully');
           
           res.json({
             username: admin.username,
@@ -130,44 +252,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       });
     } catch (error) {
-      console.error("Error during admin login:", error);
+      logger.error({ error }, "Error during admin login");
       res.status(500).json({ message: "Login failed" });
     }
   });
   
   // Check admin session
-  app.get('/api/admin/session', async (req, res) => {
-    const adminUser = (req.session as any).adminUser;
-    
-    if (!adminUser) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    
-    res.json(adminUser);
-  });
-  
-  // Change admin password
-  app.post('/api/admin/change-password', adminAuthLimiter, async (req, res) => {
+  app.get('/api/admin/session', async (req: any, res) => {
     try {
       const adminUser = (req.session as any).adminUser;
       
       if (!adminUser) {
-        return res.status(401).json({ message: "Not authenticated" });
+        return res.status(401).json({ message: "Not authenticated", requestId: req.id });
       }
       
+      res.json(adminUser);
+    } catch (error) {
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error checking admin session');
+      res.status(500).json({ message: "Failed to check session", requestId: req.id });
+    }
+  });
+  
+  // Change admin password
+  app.post('/api/admin/change-password', requireAdminSession, adminAuthLimiter, async (req, res) => {
+    try {
+      const adminUser = (req.session as any).adminUser;
       const { currentPassword, newPassword } = req.body;
       
       if (!currentPassword || !newPassword) {
+        logger.warn({ username: adminUser.username }, 'Password change attempt with missing fields');
         return res.status(400).json({ message: "Current and new passwords required" });
       }
       
       if (newPassword.length < 8) {
+        logger.warn({ username: adminUser.username }, 'Password change attempt with weak password');
         return res.status(400).json({ message: "New password must be at least 8 characters" });
       }
       
       const isValid = await storage.verifyAdminPassword(adminUser.username, currentPassword);
       
       if (!isValid) {
+        logger.warn({ username: adminUser.username }, 'Password change attempt with incorrect current password');
         return res.status(401).json({ message: "Current password is incorrect" });
       }
       
@@ -179,17 +304,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mustChangePassword: false,
       };
       
+      logger.info({ username: adminUser.username }, 'Admin password changed successfully');
       res.json({ message: "Password changed successfully" });
     } catch (error) {
-      console.error("Error changing password:", error);
+      logger.error({ error }, "Error changing password");
       res.status(500).json({ message: "Failed to change password" });
     }
   });
   
   // Admin logout
-  app.post('/api/admin/logout', async (req, res) => {
-    (req.session as any).adminUser = null;
-    res.json({ message: "Logged out successfully" });
+  app.post('/api/admin/logout', async (req: any, res) => {
+    try {
+      (req.session as any).adminUser = null;
+      res.json({ message: "Logged out successfully" });
+    } catch (error) {
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error during admin logout');
+      res.status(500).json({ message: "Logout failed", requestId: req.id });
+    }
   });
 
   // ==================== CLIENT ROUTES ====================
@@ -201,17 +332,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const profile = await storage.getBuyerProfileByUserId(userId);
       
       if (!profile) {
-        // Create default profile if doesn't exist
         const newProfile = await storage.createBuyerProfile({
           userId,
         });
+        logger.info({ requestId: req.id, userId }, 'Created new buyer profile');
         return res.json(newProfile);
       }
       
       res.json(profile);
     } catch (error) {
-      console.error("Error fetching client profile:", error);
-      res.status(500).json({ message: "Failed to fetch profile" });
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error fetching client profile');
+      res.status(500).json({ message: "Failed to fetch profile", requestId: req.id });
     }
   });
 
@@ -219,14 +350,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/client/profile', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const updates = req.body;
       
+      const updateSchema = z.object({
+        budget: z.string().optional(),
+        preferredLocations: z.array(z.string()).optional(),
+        propertyTypes: z.array(z.string()).optional(),
+        notes: z.string().max(5000).optional(),
+      });
+      
+      const updates = updateSchema.parse(req.body);
       const profile = await storage.updateBuyerProfile(userId, updates);
       
+      logger.info({ requestId: req.id, userId }, 'Updated buyer profile');
       res.json(profile);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      res.status(500).json({ message: "Failed to update profile" });
+    } catch (error: any) {
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error updating profile');
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid profile data", errors: error.errors, requestId: req.id });
+      }
+      res.status(500).json({ message: "Failed to update profile", requestId: req.id });
     }
   });
 
@@ -237,7 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const consultations = await storage.getConsultationsByUser(userId);
       res.json(consultations);
     } catch (error) {
-      console.error("Error fetching consultations:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching consultations:");
       res.status(500).json({ message: "Failed to fetch consultations" });
     }
   });
@@ -254,7 +396,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const consultation = await storage.createConsultation(consultationData);
       res.json(consultation);
     } catch (error: any) {
-      console.error("Error creating consultation:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error creating consultation:");
       res.status(400).json({ message: error.message || "Failed to create consultation" });
     }
   });
@@ -266,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payments = await storage.getPaymentsByUser(userId);
       res.json(payments);
     } catch (error) {
-      console.error("Error fetching payments:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching payments:");
       res.status(500).json({ message: "Failed to fetch payments" });
     }
   });
@@ -283,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const payment = await storage.createPayment(paymentData);
       res.json(payment);
     } catch (error: any) {
-      console.error("Error creating payment:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error creating payment:");
       res.status(400).json({ message: error.message || "Failed to create payment" });
     }
   });
@@ -294,7 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const properties = await storage.getAllProperties();
       res.json(properties.slice(0, 10)); // Return first 10
     } catch (error) {
-      console.error("Error fetching properties:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching properties:");
       res.status(500).json({ message: "Failed to fetch properties" });
     }
   });
@@ -351,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const booking = await storage.createConsultationBooking(bookingData);
       res.json(booking);
     } catch (error: any) {
-      console.error("Error creating public consultation booking:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error creating public consultation booking:");
       res.status(400).json({ message: error.message || "Failed to create booking" });
     }
   });
@@ -400,7 +542,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const booking = await storage.createConsultationBooking(bookingData);
       res.json(booking);
     } catch (error: any) {
-      console.error("Error creating consultation booking:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error creating consultation booking:");
       res.status(400).json({ message: error.message || "Failed to create booking" });
     }
   });
@@ -412,7 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const bookings = await storage.getUserConsultationBookings(userId);
       res.json(bookings);
     } catch (error) {
-      console.error("Error fetching consultation bookings:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching consultation bookings:");
       res.status(500).json({ message: "Failed to fetch bookings" });
     }
   });
@@ -420,8 +562,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ==================== ADMIN ROUTES ====================
   
   // Get all users
-  app.get('/api/admin/users', requireAdminSession, async (req, res) => {
+  app.get('/api/admin/users', requirePasswordChanged, async (req, res) => {
     try {
+      logger.debug({ path: req.path, query: req.query }, 'Fetching all users');
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const search = req.query.search as string;
@@ -430,26 +573,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.getAllUsers(page, limit, search, role);
       res.json(result);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      logger.error({ error, path: req.path }, "Error fetching users");
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });
 
   // Create user (admin only)
-  app.post('/api/admin/users', requireAdminSession, async (req, res) => {
+  app.post('/api/admin/users', requirePasswordChanged, async (req, res) => {
     try {
+      logger.debug({ path: req.path }, 'Creating new user');
       const userData = upsertUserSchema.parse(req.body);
       const user = await storage.upsertUser(userData);
+      logger.info({ userId: user.id }, 'User created successfully');
       res.json(user);
     } catch (error: any) {
-      console.error("Error creating user:", error);
+      logger.error({ error, path: req.path }, "Error creating user");
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
       res.status(400).json({ message: error.message || "Failed to create user" });
     }
   });
 
   // Get all developers
-  app.get('/api/admin/developers', requireAdminSession, async (req, res) => {
+  app.get('/api/admin/developers', requirePasswordChanged, async (req, res) => {
     try {
+      logger.debug({ path: req.path, query: req.query }, 'Fetching all developers');
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const search = req.query.search as string;
@@ -457,124 +606,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await storage.getAllDevelopers(page, limit, search);
       res.json(result);
     } catch (error) {
-      console.error("Error fetching developers:", error);
+      logger.error({ error, path: req.path }, "Error fetching developers");
       res.status(500).json({ message: "Failed to fetch developers" });
     }
   });
 
   // Get all payments
-  app.get('/api/admin/payments', requireAdminSession, async (req, res) => {
+  app.get('/api/admin/payments', requirePasswordChanged, async (req, res) => {
     try {
+      logger.debug({ path: req.path, query: req.query }, 'Fetching all payments');
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       
       const result = await storage.getAllPayments(page, limit);
       res.json(result);
     } catch (error) {
-      console.error("Error fetching payments:", error);
+      logger.error({ error, path: req.path }, "Error fetching payments");
       res.status(500).json({ message: "Failed to fetch payments" });
     }
   });
 
   // Get all consultation bookings (admin, paginated)
-  app.get('/api/admin/consultations/bookings', requireAdminSession, async (req, res) => {
+  app.get('/api/admin/consultations/bookings', requirePasswordChanged, async (req, res) => {
     try {
+      logger.debug({ path: req.path, query: req.query }, 'Fetching consultation bookings');
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       
       const result = await storage.getAllConsultationBookings(page, limit);
       res.json(result);
     } catch (error) {
-      console.error("Error fetching consultation bookings:", error);
+      logger.error({ error, path: req.path }, "Error fetching consultation bookings");
       res.status(500).json({ message: "Failed to fetch bookings" });
     }
   });
 
   // Update consultation booking payment status (admin only)
-  app.put('/api/admin/consultations/bookings/:id/payment', requireAdminSession, async (req, res) => {
+  app.put('/api/admin/consultations/bookings/:id/payment', requirePasswordChanged, async (req, res) => {
     try {
       const { id } = req.params;
       const { status, phone } = req.body;
       
+      if (!status) {
+        logger.warn({ bookingId: id }, 'Payment status update missing status field');
+        return res.status(400).json({ message: "Payment status is required" });
+      }
+      
+      logger.debug({ bookingId: id, status }, 'Updating booking payment status');
       await storage.updateBookingPaymentStatus(id, status, phone);
+      logger.info({ bookingId: id, status }, 'Payment status updated successfully');
       res.json({ message: "Payment status updated successfully" });
     } catch (error) {
-      console.error("Error updating payment status:", error);
+      logger.error({ error, bookingId: req.params.id }, "Error updating payment status");
       res.status(500).json({ message: "Failed to update payment status" });
     }
   });
 
   // Update consultation booking notes (admin only)
-  app.put('/api/admin/consultations/bookings/:id/notes', requireAdminSession, async (req, res) => {
+  app.put('/api/admin/consultations/bookings/:id/notes', requirePasswordChanged, async (req, res) => {
     try {
       const { id } = req.params;
       const { notes } = req.body;
       
+      logger.debug({ bookingId: id }, 'Updating booking notes');
       await storage.updateBookingNotes(id, notes || '');
+      logger.info({ bookingId: id }, 'Notes updated successfully');
       res.json({ message: "Notes updated successfully" });
     } catch (error) {
-      console.error("Error updating notes:", error);
+      logger.error({ error, bookingId: req.params.id }, "Error updating notes");
       res.status(500).json({ message: "Failed to update notes" });
     }
   });
 
   // Update consultation booking status (admin only)
-  app.put('/api/admin/consultations/bookings/:id/status', requireAdminSession, async (req, res) => {
+  app.put('/api/admin/consultations/bookings/:id/status', requirePasswordChanged, async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
       
+      if (!status) {
+        logger.warn({ bookingId: id }, 'Booking status update missing status field');
+        return res.status(400).json({ message: "Booking status is required" });
+      }
+      
+      logger.debug({ bookingId: id, status }, 'Updating booking status');
       await storage.updateBookingStatus(id, status);
+      logger.info({ bookingId: id, status }, 'Booking status updated successfully');
       res.json({ message: "Booking status updated successfully" });
     } catch (error) {
-      console.error("Error updating booking status:", error);
+      logger.error({ error, bookingId: req.params.id }, "Error updating booking status");
       res.status(500).json({ message: "Failed to update booking status" });
     }
   });
 
   // Get all market data
-  app.get('/api/admin/market-data', requireAdminSession, async (req, res) => {
+  app.get('/api/admin/market-data', requirePasswordChanged, async (req, res) => {
     try {
+      logger.debug({ path: req.path }, 'Fetching market data');
       const data = await storage.getAllMarketData();
       res.json(data);
     } catch (error) {
-      console.error("Error fetching market data:", error);
+      logger.error({ error, path: req.path }, "Error fetching market data");
       res.status(500).json({ message: "Failed to fetch market data" });
     }
   });
 
   // Get all behavioral tracking data
-  app.get('/api/admin/behavioral-tracking', requireAdminSession, async (req, res) => {
+  app.get('/api/admin/behavioral-tracking', requirePasswordChanged, async (req, res) => {
     try {
+      logger.debug({ path: req.path }, 'Fetching behavioral tracking');
       const tracking = await storage.getAllBehavioralTracking();
       res.json(tracking);
     } catch (error) {
-      console.error("Error fetching behavioral tracking:", error);
+      logger.error({ error, path: req.path }, "Error fetching behavioral tracking");
       res.status(500).json({ message: "Failed to fetch behavioral tracking" });
     }
   });
 
   // Upload market data (JSON)
-  app.post('/api/admin/market-data/upload', requireAdminSession, async (req, res) => {
+  app.post('/api/admin/market-data/upload', requirePasswordChanged, async (req, res) => {
     try {
       const { jsonData } = req.body;
       
       if (!jsonData) {
+        logger.warn({ path: req.path }, 'Market data upload missing JSON data');
         return res.status(400).json({ message: "JSON data is required" });
       }
 
-      // Parse JSON data
       let parsedData;
       try {
         parsedData = JSON.parse(jsonData);
       } catch (e) {
+        logger.warn({ path: req.path, error: e }, 'Invalid JSON format in market data upload');
         return res.status(400).json({ message: "Invalid JSON format" });
       }
 
-      // Handle both single object and array of objects
       const dataArray = Array.isArray(parsedData) ? parsedData : [parsedData];
       
-      // Validate and insert each record
       const validatedData = dataArray.map(item => {
         return insertMarketDataSchema.parse({
           region: item.region,
@@ -591,13 +759,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const records = await storage.bulkCreateMarketData(validatedData);
+      logger.info({ recordCount: records.length }, 'Market data uploaded successfully');
       
       res.json({ 
         message: `Successfully uploaded ${records.length} market data record(s)`,
         records 
       });
     } catch (error: any) {
-      console.error("Error uploading market data:", error);
+      logger.error({ error, path: req.path }, "Error uploading market data");
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid market data format", errors: error.errors });
+      }
       res.status(400).json({ message: error.message || "Failed to upload market data" });
     }
   });
@@ -616,7 +788,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(developer);
     } catch (error) {
-      console.error("Error fetching developer profile:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching developer profile:");
       res.status(500).json({ message: "Failed to fetch developer profile" });
     }
   });
@@ -634,7 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const properties = await storage.getPropertiesByDeveloper(developer.id);
       res.json(properties);
     } catch (error) {
-      console.error("Error fetching developer properties:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching developer properties:");
       res.status(500).json({ message: "Failed to fetch properties" });
     }
   });
@@ -657,7 +829,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const property = await storage.createProperty(propertyData);
       res.json(property);
     } catch (error: any) {
-      console.error("Error creating property:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error creating property:");
       res.status(400).json({ message: error.message || "Failed to create property" });
     }
   });
@@ -669,7 +841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In real implementation, this would match clients to developers
       res.json([]);
     } catch (error) {
-      console.error("Error fetching leads:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching leads:");
       res.status(500).json({ message: "Failed to fetch leads" });
     }
   });
@@ -689,53 +861,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Tracked successfully" });
     } catch (error: any) {
       // Don't fail the request if tracking fails
-      console.error("Error tracking behavior:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error tracking behavior:");
       res.status(200).json({ message: "Tracking failed silently" });
     }
   });
 
   // ==================== PUBLIC ROUTES ====================
   
-  // Get all properties (public)
-  app.get('/api/properties', async (req, res) => {
+  // Get all properties (public) - with query param validation
+  app.get('/api/properties', async (req: any, res) => {
     try {
+      const querySchema = z.object({
+        search: z.string().optional(),
+        region: z.string().optional(),
+        propertyType: z.string().optional(),
+        minPrice: z.coerce.number().optional(),
+        maxPrice: z.coerce.number().optional(),
+      });
+      
+      const queryParams = querySchema.parse(req.query);
+      logger.debug({ requestId: req.id, query: queryParams }, 'Fetching properties');
+      
       const properties = await storage.getAllProperties();
-      res.json(properties);
-    } catch (error) {
-      console.error("Error fetching properties:", error);
-      res.status(500).json({ message: "Failed to fetch properties" });
+      
+      let filtered = properties;
+      if (queryParams.search) {
+        const searchLower = queryParams.search.toLowerCase();
+        filtered = filtered.filter(p => 
+          p.title?.toLowerCase().includes(searchLower) ||
+          p.location?.toLowerCase().includes(searchLower)
+        );
+      }
+      if (queryParams.region) {
+        filtered = filtered.filter(p => p.location?.toLowerCase().includes(queryParams.region!.toLowerCase()));
+      }
+      if (queryParams.propertyType) {
+        filtered = filtered.filter(p => p.type === queryParams.propertyType);
+      }
+      if (queryParams.minPrice) {
+        filtered = filtered.filter(p => p.price && parseInt(p.price) >= queryParams.minPrice!);
+      }
+      if (queryParams.maxPrice) {
+        filtered = filtered.filter(p => p.price && parseInt(p.price) <= queryParams.maxPrice!);
+      }
+      
+      res.json(filtered);
+    } catch (error: any) {
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error fetching properties');
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid query parameters", errors: error.errors, requestId: req.id });
+      }
+      res.status(500).json({ message: "Failed to fetch properties", requestId: req.id });
     }
   });
 
-  // Get property by ID (public)
-  app.get('/api/properties/:id', async (req, res) => {
+  // Get property by ID (public) - with ID validation
+  app.get('/api/properties/:id', async (req: any, res) => {
     try {
       const { id } = req.params;
+      
+      if (!id || id.length < 1) {
+        return res.status(400).json({ message: "Invalid property ID", requestId: req.id });
+      }
+      
       const property = await storage.getProperty(id);
       
       if (!property) {
-        return res.status(404).json({ message: "Property not found" });
+        logger.debug({ requestId: req.id, propertyId: id }, 'Property not found');
+        return res.status(404).json({ message: "Property not found", requestId: req.id });
       }
       
-      // Increment view count
       await storage.incrementPropertyViews(id);
+      logger.debug({ requestId: req.id, propertyId: id }, 'Property view incremented');
       
       res.json(property);
     } catch (error) {
-      console.error("Error fetching property:", error);
-      res.status(500).json({ message: "Failed to fetch property" });
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error fetching property');
+      res.status(500).json({ message: "Failed to fetch property", requestId: req.id });
     }
   });
 
-  // Get market data by region (public)
-  app.get('/api/market-data/:region', async (req, res) => {
+  // Get market data by region (public) - with region validation
+  app.get('/api/market-data/:region', async (req: any, res) => {
     try {
-      const { region } = req.params;
-      const data = await storage.getMarketDataByRegion(region);
+      const params = regionParamSchema.parse(req.params);
+      logger.debug({ requestId: req.id, region: params.region }, 'Fetching market data');
+      
+      const data = await storage.getMarketDataByRegion(params.region);
       res.json(data);
-    } catch (error) {
-      console.error("Error fetching market data:", error);
-      res.status(500).json({ message: "Failed to fetch market data" });
+    } catch (error: any) {
+      logger.error({ requestId: req.id, error: sanitizeError(error) }, 'Error fetching market data');
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ message: "Invalid region parameter", errors: error.errors, requestId: req.id });
+      }
+      res.status(500).json({ message: "Failed to fetch market data", requestId: req.id });
     }
   });
 
@@ -749,7 +968,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateUserNotes(id, notes || '');
       res.json({ message: "Notes updated successfully" });
     } catch (error) {
-      console.error("Error updating user notes:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error updating user notes:");
       res.status(500).json({ message: "Failed to update notes" });
     }
   });
@@ -762,7 +981,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateDeveloperNotes(id, notes || '');
       res.json({ message: "Notes updated successfully" });
     } catch (error) {
-      console.error("Error updating developer notes:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error updating developer notes:");
       res.status(500).json({ message: "Failed to update notes" });
     }
   });
@@ -775,7 +994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updatePropertyNotes(id, notes || '');
       res.json({ message: "Notes updated successfully" });
     } catch (error) {
-      console.error("Error updating property notes:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error updating property notes:");
       res.status(500).json({ message: "Failed to update notes" });
     }
   });
@@ -788,7 +1007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateBuyerProfileNotes(userId, notes || '');
       res.json({ message: "Notes updated successfully" });
     } catch (error) {
-      console.error("Error updating buyer profile notes:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error updating buyer profile notes:");
       res.status(500).json({ message: "Failed to update notes" });
     }
   });
@@ -801,7 +1020,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateMarketDataNotes(id, notes || '');
       res.json({ message: "Notes updated successfully" });
     } catch (error) {
-      console.error("Error updating market data notes:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error updating market data notes:");
       res.status(500).json({ message: "Failed to update notes" });
     }
   });
@@ -814,7 +1033,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const content = await storage.getAllCmsContent();
       res.json(content);
     } catch (error) {
-      console.error("Error fetching CMS content:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching CMS content:");
       res.status(500).json({ message: "Failed to fetch CMS content" });
     }
   });
@@ -831,7 +1050,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(content);
     } catch (error) {
-      console.error("Error fetching CMS content:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error fetching CMS content:");
       res.status(500).json({ message: "Failed to fetch content" });
     }
   });
@@ -857,7 +1076,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(content);
     } catch (error: any) {
-      console.error("Error upserting CMS content:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error upserting CMS content:");
       res.status(400).json({ message: error.message || "Failed to update content" });
     }
   });
@@ -869,7 +1088,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteCmsContent(key);
       res.json({ message: "Content deleted successfully" });
     } catch (error) {
-      console.error("Error deleting CMS content:", error);
+      logger.error({ requestId: req.id, error: sanitizeError(error) },"Error deleting CMS content:");
       res.status(500).json({ message: "Failed to delete content" });
     }
   });

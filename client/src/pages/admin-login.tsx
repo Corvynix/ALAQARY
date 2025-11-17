@@ -47,11 +47,11 @@ export default function AdminLogin() {
   // Show password change form if needed
   if (existingSession?.mustChangePassword || adminSession?.mustChangePassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-accent/5 p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(to bottom right, hsl(var(--background)), hsl(var(--background)), rgba(255,215,0,0.05))'}}>
         <Card className="w-full max-w-md border-border/50 shadow-2xl">
           <CardHeader className="space-y-3 text-center">
-            <div className="mx-auto w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center">
-              <Shield className="h-8 w-8 text-accent" />
+            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center" style={{backgroundColor: 'rgba(255,215,0,0.1)'}}>
+              <Shield className="h-8 w-8" style={{color: '#ffd700'}} />
             </div>
             <CardTitle className="text-2xl font-bold">Change Password Required</CardTitle>
             <CardDescription className="text-base">
@@ -84,7 +84,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-md space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
+          <div className="mx-auto w-20 h-20 rounded-full flex items-center justify-center shadow-lg" style={{background: 'linear-gradient(to bottom right, hsl(var(--primary)), rgba(255,215,0,0.8))'}}>
             <Shield className="h-10 w-10 text-primary-foreground" />
           </div>
           <div>
@@ -325,8 +325,8 @@ function PasswordChangeForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="bg-accent/10 border border-accent/20 rounded-md p-4 flex gap-3">
-        <AlertCircle className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+      <div className="rounded-md p-4 flex gap-3" style={{backgroundColor: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)'}}>
+        <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{color: '#ffd700'}} />
         <div className="text-sm text-foreground">
           <p className="font-medium mb-1">Security Notice</p>
           <p className="text-muted-foreground">

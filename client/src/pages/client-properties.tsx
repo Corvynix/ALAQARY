@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, MapPin, Bed, Bath, Maximize2 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Building2, MapPin, Bed, Bath, Maximize2, XCircle, RefreshCw } from "lucide-react";
 import type { Property } from "@shared/schema";
 
 export default function ClientProperties() {
-  const { data: properties = [], isLoading } = useQuery<Property[]>({
+  const { data: properties = [], isLoading, isError, refetch } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
   });
 
@@ -18,8 +19,26 @@ export default function ClientProperties() {
         <p className="text-muted-foreground text-lg">تصفح العقارات واحفظ المفضلة لديك</p>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {isError ? (
+        <Alert variant="destructive" data-testid="alert-properties-error">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>خطأ / Error</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>فشل تحميل العقارات / Failed to load properties</p>
+            <Button 
+              onClick={() => refetch()} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              data-testid="button-retry-properties"
+            >
+              <RefreshCw className="h-3 w-3 me-2" />
+              أعد المحاولة / Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="skeleton-properties-loading">
           {[...Array(6)].map((_, i) => (
             <Skeleton key={i} className="h-80 w-full" />
           ))}
@@ -38,7 +57,7 @@ export default function ClientProperties() {
             <Card key={property.id} className="hover-elevate overflow-hidden" data-testid={`card-property-${index}`}>
               <div className="h-48 bg-muted relative">
                 {property.featured && (
-                  <Badge className="absolute top-3 left-3 bg-accent" data-testid={`badge-featured-${index}`}>
+                  <Badge className="absolute top-3 left-3 metallic-gold-bg text-black" data-testid={`badge-featured-${index}`}>
                     مميز
                   </Badge>
                 )}
@@ -72,7 +91,7 @@ export default function ClientProperties() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-accent" data-testid={`text-price-${index}`}>
+                  <span className="text-2xl font-bold metallic-gold" data-testid={`text-price-${index}`}>
                     {Number(property.price).toLocaleString()} جنيه
                   </span>
                   <Badge variant="outline" data-testid={`badge-type-${index}`}>

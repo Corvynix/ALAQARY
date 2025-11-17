@@ -109,7 +109,7 @@ export default function ClientProfile() {
 
               <Button
                 type="submit"
-                className="w-full bg-accent hover:bg-accent/90"
+                className="w-full metallic-gold-bg text-black border-0"
                 disabled={updateProfileMutation.isPending}
                 data-testid="button-save-profile"
               >
@@ -126,7 +126,7 @@ export default function ClientProfile() {
           </CardHeader>
           <CardContent>
             <div className="text-center space-y-4">
-              <div className="text-5xl font-bold text-accent" data-testid="text-completion">
+              <div className="text-5xl font-bold metallic-gold" data-testid="text-completion">
                 {profile?.profileCompletion || 0}%
               </div>
               <p className="text-sm text-muted-foreground">

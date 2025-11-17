@@ -3,11 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Building2, Plus, Eye, MapPin } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Building2, Plus, Eye, MapPin, XCircle, RefreshCw } from "lucide-react";
 import type { Property } from "@shared/schema";
 
 export default function DeveloperProperties() {
-  const { data: properties = [], isLoading } = useQuery<Property[]>({
+  const { data: properties = [], isLoading, isError, refetch } = useQuery<Property[]>({
     queryKey: ["/api/developer/properties"],
   });
 
@@ -18,14 +19,32 @@ export default function DeveloperProperties() {
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">عقاراتي</h1>
           <p className="text-muted-foreground text-lg">إدارة قوائم العقارات الخاصة بك</p>
         </div>
-        <Button className="bg-accent hover:bg-accent/90" data-testid="button-add-property">
+        <Button className="metallic-gold-bg text-black border-0" data-testid="button-add-property">
           <Plus className="w-4 h-4 me-2" />
           إضافة عقار
         </Button>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {isError ? (
+        <Alert variant="destructive" data-testid="alert-properties-error">
+          <XCircle className="h-4 w-4" />
+          <AlertTitle>خطأ / Error</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>فشل تحميل العقارات / Failed to load properties</p>
+            <Button 
+              onClick={() => refetch()} 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              data-testid="button-retry-properties"
+            >
+              <RefreshCw className="h-3 w-3 me-2" />
+              أعد المحاولة / Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      ) : isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="skeleton-properties-loading">
           {[...Array(6)].map((_, i) => (
             <Skeleton key={i} className="h-64 w-full" />
           ))}
@@ -36,7 +55,7 @@ export default function DeveloperProperties() {
             <Building2 className="h-16 w-16 text-muted-foreground mb-4" />
             <h3 className="text-xl font-bold text-foreground mb-2">لم تضف أي عقارات بعد</h3>
             <p className="text-muted-foreground mb-6">ابدأ بإضافة عقارك الأول</p>
-            <Button className="bg-accent hover:bg-accent/90" data-testid="button-first-property">
+            <Button className="metallic-gold-bg text-black border-0" data-testid="button-first-property">
               <Plus className="w-4 h-4 me-2" />
               أضف عقار جديد
             </Button>
@@ -65,7 +84,7 @@ export default function DeveloperProperties() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-accent" data-testid={`text-price-${index}`}>
+                  <span className="text-2xl font-bold metallic-gold" data-testid={`text-price-${index}`}>
                     {Number(property.price).toLocaleString()} جنيه
                   </span>
                   <span className="text-sm text-muted-foreground flex items-center gap-1">

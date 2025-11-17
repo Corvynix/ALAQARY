@@ -3,41 +3,20 @@ import helmet from "helmet";
 import compression from "compression";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
-import pino from "pino";
+import crypto from "crypto";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { pool } from "./db";
+import { logger } from "./logger";
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 
-const logger = pino({
-  level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
-  transport: !isProduction ? {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'HH:MM:ss',
-      ignore: 'pid,hostname',
-    }
-  } : undefined,
-});
+let isShuttingDown = false;
 
 function validateEnvironment() {
-  const required = [
-    'DATABASE_URL',
-    'SESSION_SECRET',
-  ];
-  
-  const missing = required.filter(key => !process.env[key]);
-  
-  if (missing.length > 0) {
-    logger.error({ missing }, 'Missing required environment variables');
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
-  }
-  
   if (isProduction) {
-    const productionRequired = ['ADMIN_INIT_SECRET'];
+    const productionRequired = ['DATABASE_URL', 'SESSION_SECRET', 'ADMIN_INIT_SECRET'];
     const productionMissing = productionRequired.filter(key => !process.env[key]);
     
     if (productionMissing.length > 0) {
@@ -50,20 +29,18 @@ function validateEnvironment() {
       logger.error('ADMIN_INIT_SECRET contains forbidden placeholder value');
       throw new Error('ADMIN_INIT_SECRET must be set to a secure, unique value in production');
     }
-  }
-  
-  if (process.env.STRIPE_SECRET_KEY) {
-    if (!process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
-      logger.error('STRIPE_SECRET_KEY has invalid format');
-      throw new Error('STRIPE_SECRET_KEY must start with "sk_" - please verify your Stripe secret key');
-    }
-    logger.info('Stripe integration detected and validated');
-  }
-  
-  if (!process.env.GEMINI_API_KEY) {
-    logger.warn('GEMINI_API_KEY not set - AI features may not be available');
   } else {
-    logger.info('Gemini AI integration detected');
+    if (!process.env.DATABASE_URL) {
+      logger.warn('⚠️  DATABASE_URL not set - using in-memory storage (MemStorage)');
+      logger.warn('⚠️  WARNING: All data will be lost when the server restarts!');
+      logger.warn('⚠️  This is only suitable for development and testing.');
+    }
+    
+    if (!process.env.SESSION_SECRET) {
+      logger.warn('⚠️  SESSION_SECRET not set - using default development secret');
+      logger.warn('⚠️  WARNING: This is insecure and should only be used in development!');
+      process.env.SESSION_SECRET = 'dev-secret-change-in-production';
+    }
   }
   
   if (isProduction && !process.env.SENTRY_DSN_SERVER) {
@@ -111,6 +88,13 @@ declare module 'http' {
 }
 
 app.use((req, res, next) => {
+  if (isShuttingDown) {
+    res.setHeader('Connection', 'close');
+    return res.status(503).json({ 
+      message: 'Server is shutting down, please try again later',
+    });
+  }
+  
   req.id = crypto.randomUUID();
   res.setHeader('X-Request-ID', req.id);
   next();
@@ -245,25 +229,39 @@ app.get('/health/ready', async (_req, res) => {
     const gracefulShutdown = async (signal: string) => {
       logger.info({ signal }, 'Graceful shutdown initiated');
       
-      serverInstance.close(async () => {
-        logger.info('HTTP server closed');
+      isShuttingDown = true;
+      logger.info('Server stopped accepting new requests');
+      
+      const shutdownTimeout = setTimeout(() => {
+        logger.error('Forced shutdown after 30s timeout');
+        process.exit(1);
+      }, 30000);
+      
+      serverInstance.close(async (err) => {
+        if (err) {
+          logger.error({ error: err }, 'Error closing HTTP server');
+          clearTimeout(shutdownTimeout);
+          process.exit(1);
+          return;
+        }
+        
+        logger.info('HTTP server closed - all connections finished');
         
         try {
           await pool.end();
           logger.info('Database pool closed');
           
-          logger.info('Graceful shutdown completed');
+          clearTimeout(shutdownTimeout);
+          logger.info('Graceful shutdown completed successfully');
           process.exit(0);
         } catch (error) {
-          logger.error({ error }, 'Error during shutdown');
+          logger.error({ error }, 'Error closing database pool');
+          clearTimeout(shutdownTimeout);
           process.exit(1);
         }
       });
       
-      setTimeout(() => {
-        logger.error('Forced shutdown after timeout');
-        process.exit(1);
-      }, 30000);
+      logger.info('Waiting for existing requests to complete (max 30s)...');
     };
 
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

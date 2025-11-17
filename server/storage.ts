@@ -694,4 +694,621 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+/**
+ * MemStorage - In-memory storage implementation for development only
+ * 
+ * ⚠️  WARNING: This storage is NOT persistent!
+ * ⚠️  All data will be LOST when the server restarts
+ * ⚠️  Only use this for development and testing
+ * ⚠️  NEVER use in production
+ * 
+ * This implementation is used when DATABASE_URL is not set in development mode.
+ */
+export class MemStorage implements IStorage {
+  private users: Map<string, User> = new Map();
+  private developers: Map<string, Developer> = new Map();
+  private properties: Map<string, Property> = new Map();
+  private buyerProfiles: Map<string, BuyerProfile> = new Map();
+  private consultations: Map<string, Consultation> = new Map();
+  private consultationBookings: Map<string, ConsultationBooking> = new Map();
+  private payments: Map<string, Payment> = new Map();
+  private contracts: Map<string, Contract> = new Map();
+  private commissions: Map<string, Commission> = new Map();
+  private marketData: Map<string, MarketData> = new Map();
+  private behavioralTracking: Map<string, BehavioralTracking> = new Map();
+  private referrals: Map<string, Referral> = new Map();
+  private notifications: Map<string, Notification> = new Map();
+  private adminCredentials: Map<string, AdminCredential> = new Map();
+  private cmsContent: Map<string, CmsContent> = new Map();
+
+  constructor() {
+    console.warn('\n' + '='.repeat(80));
+    console.warn('⚠️  WARNING: USING IN-MEMORY STORAGE (MemStorage)');
+    console.warn('⚠️  All data will be LOST when the server restarts!');
+    console.warn('⚠️  This is for DEVELOPMENT ONLY - DO NOT use in production');
+    console.warn('⚠️  Set DATABASE_URL environment variable to use persistent storage');
+    console.warn('='.repeat(80) + '\n');
+  }
+
+  private generateId(): string {
+    return crypto.randomUUID();
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const existing = Array.from(this.users.values()).find(u => u.id === userData.id);
+    const customerCode = generateCustomerCode(userData.role || 'client', existing?.customerCode);
+    
+    const user: User = {
+      ...(existing || {}),
+      ...userData,
+      id: userData.id || this.generateId(),
+      customerCode,
+      createdAt: existing?.createdAt || new Date(),
+      updatedAt: new Date(),
+    } as User;
+    
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  async getAllUsers(page: number = 1, limit: number = 20, search?: string, role?: string): Promise<PaginatedResponse<User>> {
+    let allUsers = Array.from(this.users.values());
+    
+    if (search) {
+      const searchLower = search.toLowerCase();
+      allUsers = allUsers.filter(u => 
+        u.firstName?.toLowerCase().includes(searchLower) ||
+        u.lastName?.toLowerCase().includes(searchLower) ||
+        u.email?.toLowerCase().includes(searchLower) ||
+        u.customerCode?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    if (role && role !== 'all') {
+      allUsers = allUsers.filter(u => u.role === role);
+    }
+    
+    allUsers.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    const total = allUsers.length;
+    const start = (page - 1) * limit;
+    const data = allUsers.slice(start, start + limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getDeveloperByUserId(userId: string): Promise<Developer | undefined> {
+    return Array.from(this.developers.values()).find(d => d.userId === userId);
+  }
+
+  async createDeveloper(developerData: InsertDeveloper): Promise<Developer> {
+    const developer: Developer = {
+      ...developerData,
+      id: this.generateId(),
+      trustScore: developerData.trustScore || '0',
+      totalDeals: developerData.totalDeals || 0,
+      successfulDeals: developerData.successfulDeals || 0,
+      complaints: developerData.complaints || 0,
+      verified: developerData.verified || false,
+      notes: developerData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Developer;
+    
+    this.developers.set(developer.id, developer);
+    return developer;
+  }
+
+  async updateDeveloperTrustScore(id: string, score: number): Promise<void> {
+    const developer = this.developers.get(id);
+    if (developer) {
+      developer.trustScore = score.toString();
+      developer.updatedAt = new Date();
+    }
+  }
+
+  async getAllDevelopers(page: number = 1, limit: number = 20, search?: string): Promise<PaginatedResponse<Developer>> {
+    let allDevelopers = Array.from(this.developers.values());
+    
+    if (search) {
+      const searchLower = search.toLowerCase();
+      allDevelopers = allDevelopers.filter(d => 
+        d.companyName?.toLowerCase().includes(searchLower) ||
+        d.licenseNumber?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    allDevelopers.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    const total = allDevelopers.length;
+    const start = (page - 1) * limit;
+    const data = allDevelopers.slice(start, start + limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getProperty(id: string): Promise<Property | undefined> {
+    return this.properties.get(id);
+  }
+
+  async getPropertiesByDeveloper(developerId: string): Promise<Property[]> {
+    return Array.from(this.properties.values())
+      .filter(p => p.developerId === developerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAllProperties(): Promise<Property[]> {
+    return Array.from(this.properties.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createProperty(propertyData: InsertProperty): Promise<Property> {
+    const property: Property = {
+      ...propertyData,
+      id: this.generateId(),
+      images: propertyData.images || [],
+      amenities: propertyData.amenities || [],
+      status: propertyData.status || 'available',
+      featured: propertyData.featured || false,
+      viewCount: propertyData.viewCount || 0,
+      notes: propertyData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Property;
+    
+    this.properties.set(property.id, property);
+    return property;
+  }
+
+  async updateProperty(id: string, updates: Partial<Property>): Promise<Property> {
+    const property = this.properties.get(id);
+    if (!property) throw new Error('Property not found');
+    
+    const updated = { ...property, ...updates, updatedAt: new Date() };
+    this.properties.set(id, updated);
+    return updated;
+  }
+
+  async incrementPropertyViews(id: string): Promise<void> {
+    const property = this.properties.get(id);
+    if (property) {
+      property.viewCount++;
+    }
+  }
+
+  async getBuyerProfileByUserId(userId: string): Promise<BuyerProfile | undefined> {
+    return Array.from(this.buyerProfiles.values()).find(p => p.userId === userId);
+  }
+
+  async createBuyerProfile(profileData: InsertBuyerProfile): Promise<BuyerProfile> {
+    const profile: BuyerProfile = {
+      ...profileData,
+      id: this.generateId(),
+      preferredRegions: profileData.preferredRegions || [],
+      preferredPropertyTypes: profileData.preferredPropertyTypes || [],
+      riskTolerance: profileData.riskTolerance || 'moderate',
+      profileCompletion: profileData.profileCompletion || 0,
+      notes: profileData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as BuyerProfile;
+    
+    this.buyerProfiles.set(profile.id, profile);
+    return profile;
+  }
+
+  async updateBuyerProfile(userId: string, updates: Partial<BuyerProfile>): Promise<BuyerProfile> {
+    const profile = Array.from(this.buyerProfiles.values()).find(p => p.userId === userId);
+    if (!profile) throw new Error('Profile not found');
+    
+    const updated = { ...profile, ...updates, updatedAt: new Date() };
+    this.buyerProfiles.set(profile.id, updated);
+    return updated;
+  }
+
+  async getConsultation(id: string): Promise<Consultation | undefined> {
+    return this.consultations.get(id);
+  }
+
+  async getConsultationsByUser(userId: string): Promise<Consultation[]> {
+    return Array.from(this.consultations.values())
+      .filter(c => c.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createConsultation(consultationData: InsertConsultation): Promise<Consultation> {
+    const consultation: Consultation = {
+      ...consultationData,
+      id: this.generateId(),
+      questionsAsked: consultationData.questionsAsked || [],
+      status: consultationData.status || 'active',
+      notes: consultationData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Consultation;
+    
+    this.consultations.set(consultation.id, consultation);
+    return consultation;
+  }
+
+  async updateConsultation(id: string, updates: Partial<Consultation>): Promise<Consultation> {
+    const consultation = this.consultations.get(id);
+    if (!consultation) throw new Error('Consultation not found');
+    
+    const updated = { ...consultation, ...updates, updatedAt: new Date() };
+    this.consultations.set(id, updated);
+    return updated;
+  }
+
+  async createConsultationBooking(bookingData: InsertConsultationBooking): Promise<ConsultationBooking> {
+    const booking: ConsultationBooking = {
+      ...bookingData,
+      id: this.generateId(),
+      consultationFee: bookingData.consultationFee || '200',
+      paymentStatus: bookingData.paymentStatus || 'pending',
+      bookingStatus: bookingData.bookingStatus || 'pending',
+      priorities: bookingData.priorities || [],
+      notes: bookingData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as ConsultationBooking;
+    
+    this.consultationBookings.set(booking.id, booking);
+    return booking;
+  }
+
+  async getAllConsultationBookings(page: number = 1, limit: number = 20): Promise<PaginatedResponse<ConsultationBooking>> {
+    const allBookings = Array.from(this.consultationBookings.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    const total = allBookings.length;
+    const start = (page - 1) * limit;
+    const data = allBookings.slice(start, start + limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getUserConsultationBookings(userId: string): Promise<ConsultationBooking[]> {
+    return Array.from(this.consultationBookings.values())
+      .filter(b => b.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async updateBookingPaymentStatus(id: string, status: string, phone?: string): Promise<void> {
+    const booking = this.consultationBookings.get(id);
+    if (booking) {
+      booking.paymentStatus = status as any;
+      if (phone) booking.paymentPhone = phone;
+      booking.updatedAt = new Date();
+    }
+  }
+
+  async updateBookingNotes(id: string, notes: string): Promise<void> {
+    const booking = this.consultationBookings.get(id);
+    if (booking) {
+      booking.notes = notes;
+      booking.updatedAt = new Date();
+    }
+  }
+
+  async updateBookingStatus(id: string, status: string): Promise<void> {
+    const booking = this.consultationBookings.get(id);
+    if (booking) {
+      booking.bookingStatus = status as any;
+      booking.updatedAt = new Date();
+    }
+  }
+
+  async getPayment(id: string): Promise<Payment | undefined> {
+    return this.payments.get(id);
+  }
+
+  async getPaymentsByUser(userId: string): Promise<Payment[]> {
+    return Array.from(this.payments.values())
+      .filter(p => p.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getAllPayments(page: number = 1, limit: number = 20): Promise<PaginatedResponse<Payment>> {
+    const allPayments = Array.from(this.payments.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    
+    const total = allPayments.length;
+    const start = (page - 1) * limit;
+    const data = allPayments.slice(start, start + limit);
+    
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const payment: Payment = {
+      ...paymentData,
+      id: this.generateId(),
+      paymentStatus: paymentData.paymentStatus || 'pending',
+      notes: paymentData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Payment;
+    
+    this.payments.set(payment.id, payment);
+    return payment;
+  }
+
+  async updatePaymentStatus(id: string, status: string): Promise<void> {
+    const payment = this.payments.get(id);
+    if (payment) {
+      payment.paymentStatus = status as any;
+    }
+  }
+
+  async getContractsByUser(userId: string): Promise<Contract[]> {
+    return Array.from(this.contracts.values())
+      .filter(c => c.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createContract(contractData: InsertContract): Promise<Contract> {
+    const contract: Contract = {
+      ...contractData,
+      id: this.generateId(),
+      notes: contractData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Contract;
+    
+    this.contracts.set(contract.id, contract);
+    return contract;
+  }
+
+  async getCommissionsByDeveloper(developerId: string): Promise<Commission[]> {
+    return Array.from(this.commissions.values())
+      .filter(c => c.developerId === developerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createCommission(commissionData: InsertCommission): Promise<Commission> {
+    const commission: Commission = {
+      ...commissionData,
+      id: this.generateId(),
+      notes: commissionData.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Commission;
+    
+    this.commissions.set(commission.id, commission);
+    return commission;
+  }
+
+  async getAllMarketData(): Promise<MarketData[]> {
+    return Array.from(this.marketData.values())
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getMarketDataByRegion(region: string): Promise<MarketData[]> {
+    return Array.from(this.marketData.values())
+      .filter(m => m.region === region)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createMarketData(data: InsertMarketData): Promise<MarketData> {
+    const marketDataRecord: MarketData = {
+      ...data,
+      id: this.generateId(),
+      notes: data.notes || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as MarketData;
+    
+    this.marketData.set(marketDataRecord.id, marketDataRecord);
+    return marketDataRecord;
+  }
+
+  async bulkCreateMarketData(dataArray: InsertMarketData[]): Promise<MarketData[]> {
+    return Promise.all(dataArray.map(data => this.createMarketData(data)));
+  }
+
+  async createBehavioralTracking(trackingData: InsertBehavioralTracking): Promise<BehavioralTracking> {
+    const tracking: BehavioralTracking = {
+      ...trackingData,
+      id: this.generateId(),
+      timestamp: new Date(),
+    } as BehavioralTracking;
+    
+    this.behavioralTracking.set(tracking.id, tracking);
+    return tracking;
+  }
+
+  async getBehavioralTrackingByUser(userId: string): Promise<BehavioralTracking[]> {
+    return Array.from(this.behavioralTracking.values())
+      .filter(t => t.userId === userId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  async getAllBehavioralTracking(): Promise<BehavioralTracking[]> {
+    return Array.from(this.behavioralTracking.values())
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  }
+
+  async getReferralByCode(code: string): Promise<Referral | undefined> {
+    return Array.from(this.referrals.values()).find(r => r.referralCode === code);
+  }
+
+  async getReferralsByReferrer(referrerId: string): Promise<Referral[]> {
+    return Array.from(this.referrals.values())
+      .filter(r => r.referrerId === referrerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createReferral(referralData: InsertReferral): Promise<Referral> {
+    const referral: Referral = {
+      ...referralData,
+      id: this.generateId(),
+      createdAt: new Date(),
+    } as Referral;
+    
+    this.referrals.set(referral.id, referral);
+    return referral;
+  }
+
+  async getNotificationsByUser(userId: string): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter(n => n.userId === userId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createNotification(notificationData: InsertNotification): Promise<Notification> {
+    const notification: Notification = {
+      ...notificationData,
+      id: this.generateId(),
+      read: notificationData.read || false,
+      createdAt: new Date(),
+    } as Notification;
+    
+    this.notifications.set(notification.id, notification);
+    return notification;
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    const notification = this.notifications.get(id);
+    if (notification) {
+      notification.read = true;
+    }
+  }
+
+  async getAdminByUsername(username: string): Promise<AdminCredential | undefined> {
+    return Array.from(this.adminCredentials.values()).find(a => a.username === username);
+  }
+
+  async createAdminCredential(credentialData: InsertAdminCredential): Promise<AdminCredential> {
+    const credential: AdminCredential = {
+      ...credentialData,
+      id: this.generateId(),
+      lastPasswordChange: credentialData.lastPasswordChange || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as AdminCredential;
+    
+    this.adminCredentials.set(credential.id, credential);
+    return credential;
+  }
+
+  async updateAdminPassword(username: string, newPasswordHash: string): Promise<void> {
+    const admin = Array.from(this.adminCredentials.values()).find(a => a.username === username);
+    if (admin) {
+      admin.passwordHash = newPasswordHash;
+      admin.mustChangePassword = false;
+      admin.lastPasswordChange = new Date();
+      admin.updatedAt = new Date();
+    }
+  }
+
+  async verifyAdminPassword(username: string, password: string): Promise<boolean> {
+    const admin = await this.getAdminByUsername(username);
+    if (!admin) return false;
+    return bcrypt.compare(password, admin.passwordHash);
+  }
+
+  async getCmsContentByKey(key: string): Promise<CmsContent | undefined> {
+    return this.cmsContent.get(key);
+  }
+
+  async getAllCmsContent(): Promise<CmsContent[]> {
+    return Array.from(this.cmsContent.values())
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  }
+
+  async upsertCmsContent(contentData: InsertCmsContent): Promise<CmsContent> {
+    const existing = this.cmsContent.get(contentData.key);
+    const content: CmsContent = {
+      ...(existing || {}),
+      ...contentData,
+      id: existing?.id || this.generateId(),
+      createdAt: existing?.createdAt || new Date(),
+      updatedAt: new Date(),
+    } as CmsContent;
+    
+    this.cmsContent.set(content.key, content);
+    return content;
+  }
+
+  async deleteCmsContent(key: string): Promise<void> {
+    this.cmsContent.delete(key);
+  }
+
+  async updateUserNotes(id: string, notes: string): Promise<void> {
+    const user = this.users.get(id);
+    if (user) {
+      user.notes = notes;
+      user.updatedAt = new Date();
+    }
+  }
+
+  async updateDeveloperNotes(id: string, notes: string): Promise<void> {
+    const developer = this.developers.get(id);
+    if (developer) {
+      developer.notes = notes;
+      developer.updatedAt = new Date();
+    }
+  }
+
+  async updatePropertyNotes(id: string, notes: string): Promise<void> {
+    const property = this.properties.get(id);
+    if (property) {
+      property.notes = notes;
+      property.updatedAt = new Date();
+    }
+  }
+
+  async updateBuyerProfileNotes(userId: string, notes: string): Promise<void> {
+    const profile = Array.from(this.buyerProfiles.values()).find(p => p.userId === userId);
+    if (profile) {
+      profile.notes = notes;
+      profile.updatedAt = new Date();
+    }
+  }
+
+  async updateMarketDataNotes(id: string, notes: string): Promise<void> {
+    const data = this.marketData.get(id);
+    if (data) {
+      data.notes = notes;
+    }
+  }
+}
+
+export const storage = process.env.DATABASE_URL ? new DatabaseStorage() : new MemStorage();

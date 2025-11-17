@@ -143,7 +143,7 @@ export default function AdminDevelopers() {
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">نقاط الثقة</p>
                     <div className="flex items-center gap-2">
-                      <Award className="w-5 h-5 text-accent" />
+                      <Award className="w-5 h-5" style={{color: '#ffd700'}} />
                       <span className="text-xl font-bold text-foreground" data-testid={`text-trust-${index}`}>
                         {Number(developer.trustScore).toFixed(1)}
                       </span>

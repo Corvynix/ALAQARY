@@ -12,6 +12,7 @@ import { LanguageToggle } from "@/components/language-toggle";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SkipToContent } from "@/components/skip-to-content";
 import { CookieConsent } from "@/components/CookieConsent";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
@@ -240,7 +241,9 @@ export default function App() {
       <I18nProvider>
         <ThemeProvider>
           <TooltipProvider>
-            <Router />
+            <ErrorBoundary>
+              <Router />
+            </ErrorBoundary>
             <Toaster />
             <CookieConsent />
           </TooltipProvider>
