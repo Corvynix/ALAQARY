@@ -146,7 +146,8 @@ export default function Landing() {
 
           <Button 
             size="lg"
-            className="metallic-gold-bg text-black px-12 py-7 text-lg font-bold mb-16 border-0"
+            className="metallic-gold-bg text-black px-12 py-7 text-lg font-bold mb-16 border-0 animate-neon-pulse"
+            style={{boxShadow: '0 0 30px rgba(0,89,255,0.4), 0 0 60px rgba(0,89,255,0.2)'}}
             data-testid="button-book-now-hero"
             onClick={() => setLocation('/booking')}
           >
@@ -190,7 +191,7 @@ export default function Landing() {
               {/* Consultant Photo */}
               <div className="md:col-span-2 flex justify-center items-start">
                 <div className="relative">
-                  <div className="absolute -inset-4 rounded-full blur-2xl" style={{background: 'radial-gradient(circle, rgba(255,215,0,0.3), rgba(135,206,250,0.2))'}} />
+                  <div className="absolute -inset-4 rounded-full blur-2xl" style={{background: 'radial-gradient(circle, rgba(255,215,0,0.3), rgba(0,89,255,0.3))'}} />
                   <img 
                     src={consultantImage}
                     alt="المستشار العقاري"
@@ -273,7 +274,7 @@ export default function Landing() {
       <section className="py-24 bg-background">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <Badge className="mb-6 bg-primary/10 text-primary text-sm px-4 py-2" data-testid="badge-testimonials">
+            <Badge className="mb-6 bg-primary/10 text-primary text-sm px-4 py-2 neon-glow" data-testid="badge-testimonials">
               آراء العملاء
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
@@ -387,7 +388,7 @@ export default function Landing() {
       <section className="py-24 bg-card">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <Badge className="mb-6 text-black text-sm px-4 py-2 border-0" style={{backgroundColor: 'rgba(255,215,0,0.15)'}} data-testid="badge-solutions">
+            <Badge className="mb-6 metallic-gold-bg text-black text-sm px-4 py-2 border-0" data-testid="badge-solutions">
               <Shield className="w-3 h-3 mr-1" />
               الحل الشامل
             </Badge>
@@ -429,7 +430,7 @@ export default function Landing() {
       <section className="py-24 bg-background">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
-            <Badge className="mb-6 bg-primary/10 text-primary text-sm px-4 py-2" data-testid="badge-process">
+            <Badge className="mb-6 bg-primary/10 text-primary text-sm px-4 py-2 neon-glow" data-testid="badge-process">
               <Zap className="w-3 h-3 mr-1" />
               العملية السريعة
             </Badge>
@@ -443,23 +444,18 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {steps.map((step, index) => (
-              <Card key={index} className="p-8 hover-elevate relative overflow-hidden" data-testid={`card-step-${index}`}>
-                <div className="absolute top-4 right-4 w-16 h-16 rounded-full flex items-center justify-center" style={{backgroundColor: 'rgba(255,215,0,0.05)'}}>
-                  <span className="text-4xl font-bold" style={{color: 'rgba(255,215,0,0.3)'}}>{step.number}</span>
+              <Card key={index} className="p-8 hover-elevate" data-testid={`card-step-${index}`}>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mb-6" style={{backgroundColor: 'rgba(255,215,0,0.1)'}}>
+                  {index === 0 && <Target className="w-6 h-6" style={{color: '#ffd700'}} />}
+                  {index === 1 && <FileText className="w-6 h-6" style={{color: '#ffd700'}} />}
+                  {index === 2 && <CheckCircle className="w-6 h-6" style={{color: '#ffd700'}} />}
                 </div>
-                <div className="relative z-10">
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center mb-6" style={{backgroundColor: 'rgba(255,215,0,0.1)'}}>
-                    {index === 0 && <Target className="w-6 h-6" style={{color: '#ffd700'}} />}
-                    {index === 1 && <FileText className="w-6 h-6" style={{color: '#ffd700'}} />}
-                    {index === 2 && <CheckCircle className="w-6 h-6" style={{color: '#ffd700'}} />}
-                  </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-4">
-                    {step.title}
-                  </h3>
-                  <p className="text-base text-muted-foreground leading-loose">
-                    {step.desc}
-                  </p>
-                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-4">
+                  {step.title}
+                </h3>
+                <p className="text-base text-muted-foreground leading-loose">
+                  {step.desc}
+                </p>
               </Card>
             ))}
           </div>
@@ -472,6 +468,7 @@ export default function Landing() {
             <Button 
               size="lg"
               className="metallic-gold-bg text-black px-12 py-6 text-lg font-bold shadow-xl border-0"
+              style={{boxShadow: '0 0 25px rgba(0,89,255,0.3), 0 0 50px rgba(0,89,255,0.15)'}}
               data-testid="button-cta-process"
               onClick={() => setLocation('/booking')}
             >
@@ -552,7 +549,7 @@ export default function Landing() {
       {/* FINAL CTA - Premium */}
       <section className="py-24" style={{background: 'linear-gradient(to bottom, hsl(var(--background)), rgba(255,215,0,0.05))'}}>
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <Badge className="mb-8 text-black text-sm px-4 py-2 border-0" style={{backgroundColor: 'rgba(255,215,0,0.15)'}}>
+          <Badge className="mb-8 metallic-gold-bg text-black text-sm px-4 py-2 border-0">
             <ArrowRight className="w-3 h-3 mr-1" />
             جاهز للبدء؟
           </Badge>
@@ -568,7 +565,8 @@ export default function Landing() {
           <div className="flex flex-col items-center gap-6 mb-12">
             <Button 
               size="lg"
-              className="metallic-gold-bg text-black px-16 py-8 text-xl font-bold shadow-2xl border-0"
+              className="metallic-gold-bg text-black px-16 py-8 text-xl font-bold shadow-2xl border-0 animate-neon-pulse"
+              style={{boxShadow: '0 0 40px rgba(0,89,255,0.5), 0 0 80px rgba(0,89,255,0.25)'}}
               data-testid="button-final-cta"
               onClick={() => setLocation('/booking')}
             >
